@@ -1,0 +1,301 @@
+Machine Learning
+
+Having studied search algorithms, learning to deal with real-world uncertainties, and learning from experience - in the final section of this course, we turn our attention to learning from data. A series of algorithms classified as machine learning models, our goal is to enable computers to learn from and make predictions or decisions based on data. Machine learning models are often classified into supervised learning and unsupervised learning. In supervised learning, models are trained on labeled data, where the input and output are known. In unsupervised learning on the other hand, models are trained on unlabeled data, and the goal is to discover patterns or relationships in the data. Reinforcement learning may also be thought of as a form of machine learning, where the data is generated through interactions with an environment.
+
+Gradient Descent
+
+If most of AI could be summarized as a single mathematical process, it would be gradient descent. Be it reinforcement learning, machine learning, or constraint satisfaction, our solution approach usually takes the form of starting with an initial guess, and iteratively, but cleverly, making changes to it until some desired properties emerge. Recall our discussion of hill climbing approaches, and think about how you would extend this idea to continuous domains? For instance, how would you use hill climbing to find the minimum point of the function, 
+
+?
+
+A useful measure that can help us to take hill-climbing steps in the right direction as well as inform how big of a step we should take is the rate of change of an objective function with respect to its inputs. For a univariate function, this quantity is known as the derivative of the function with respect to its inputs. For multivariate function, this is known as the gradient of the objective function, which is simply a collection of derivatives with respect to every variable that the objective is a function of. The gradient is a vector that points in the direction of the greatest rate of increase of the objective function. The gradient is also perpendicular to the contour lines of the objective function. Depending on whether our problem is one of maximization or minimization, we take steps either towards the gradient's direction (direction of steepest ascent), or away from it (direction of steepest descent).
+
+In general, given a function 
+
+ of 
+
+ variables, the gradient of 
+
+ is defined as follows:
+
+where 
+
+ is the partial derivative of 
+
+ with respect to the function input 
+
+. For example, let 
+
+. The partial derivative of the objective function with respect to 
+
+ (i.e., 
+
+) can be solved using the chain rule as follows:
+
+Similarly, 
+
+. Therefore, 
+
+.
+
+In order to maximize a function 
+
+ of 
+
+ variables, we can take a step in the direction of the gradient of 
+
+ at the current point. This is known as gradient ascent. Similarly, in order to minimize a function 
+
+ of 
+
+ variables, we can take a step in the direction opposite to the gradient of 
+
+ at the current point. This is known as gradient descent. Let 
+
+ be a vector of 
+
+ variables, let 
+
+ be a function of 
+
+, and let 
+
+ be the learning rate. The gradient descent algorithm can be summarized as follows:
+
+function GRADIENT-DESCENT(f, 𝐱, alpha, threshold):
+
+    while True:
+
+        gradient = calculate_gradient(f, 𝐱)
+
+        if magnitude(gradient) < threshold:
+
+                return 𝐱
+
+        𝐱 = 𝐱 - α * gradient
+
+Gradient ascent (i.e., maximization) proceeds similarly, except the update equation becomes:
+
+𝐱 = 𝐱 + α * gradient
+
+For a refresher on how to compute derivates, partial derivates and gradients, please refer to Chapter 5 of Mathematics for Machine Learning.
+
+Here, instead, we focus our attention to one specific method of computing gradients of composite functions using the chain rule. The chain rule is a fundamental concept in calculus that allows us to compute the derivative of a composite function. For example, let 
+
+. The chain rule states that the derivative of 
+
+ with respect to 
+
+ is given by:
+
+This can be extended to multivariate functions. Let 
+
+. The chain rule states that the partial derivative of 
+
+ with respect to 
+
+ is given by:
+
+And the partial derivative of 
+
+ with respect to 
+
+ is given by:
+
+Indeed, this is exactly what we did in the earlier example to compute the gradient of 
+
+. We computed the partial derivative of 
+
+ with respect to 
+
+ and 
+
+, and combined them to get the gradient of 
+
+. In class, we discussed how many problems in AI boil down to defining our goals as objective functions that we want to maximize or minimize. In many such cases, we can use gradient descent to find the optimal solution. For example, in the case of linear regression, we can use gradient descent to find the optimal values of the parameters that minimize the Mean Squared Error across all data points. Now, you may notice that the gradient descent algorithm is an iterative one, i.e., we need to recompute the derivatives/gradients after every update to our set of parameters. This can be computationally expensive, especially when the number of variables is large. However, modern machine learning toolkits such as PyTorch do this with seemingly little effort! How does this work then?
+
+In order to efficiently compute derivatives of complicated objective functions, we rely on an internal representation of the objective function in the form of a computational graph. A computational graph is a directed graph that represents the flow of data through a series of operations. Each node in the graph represents an operation (as well as the partial function value evaluated upto that operation), and each edge represents the flow of data from one operation to another. The graph is constructed by breaking down the objective function into a series of elementary operations, and connecting them in the order in which they are executed. The graph, when traversed in a depth-first manner, allows us to compute the objective function value by applying the operations in the correct order.
+
+Building such a graph allows us to compute the derivative of the objective function with respect to its inputs by applying the chain rule in a reverse order through the a graph. This process is known as automatic differentiation, and is central to modern machine learning frameworks. Let's take an example, and explore how we can construct a computation graph by splitting the function by operators. Consider the function 
+
+. We can split this function into elementary operations as 
+
+. We then look at the 'outermost' operator - in other words, the operator that is applied at the final stage of the function evaluation. In this case, it's the multiplication operator, that takes two inputs and multiplies them. In our case, both inputs are the same, i.e., 
+
+. Now, we split each 
+
+ by the addition operator, which also accepts two inputs, namely 
+
+ and 
+
+. We can now construct a computation graph that looks like this:
+
+In this graph, each operator node also represents the function below it. For instance, each of the nodes with the 
+
+ symbol represents the (sub)function 
+
+, and the node with the 
+
+ symbol combines these under multiplication to give us our original function 
+
+. The graph is traversed in a forward manner (bottom to top) to compute the function value.
+
+Next, we will extend this graph to compute the derivative of the function with respect to 
+
+. We can do this by applying the chain rule in a reverse manner through the graph. The chain rule states that the derivative of a composite function is the product of the derivative of the outer function with respect to the inner function, and the derivative of the inner function with respect to the input. Take for instance, our function, 
+
+. The derivative of 
+
+ with respect to 
+
+ is given by:
+
+To represent the computation of this derivative on the graph, we label each edge with the partial derivative of the parent node with respect to the input along that edge. For example,
+
+Similarly,
+
+This gives us the following graph:
+
+The key benefit of drawing such a graph is that it allows us to compute the derivative of the objective function with respect to any of its inputs by traversing the graph in a top-down fashion, also referred to as backpropagation. To find, for instance, the derivative of 
+
+ with respect to 
+
+, we first isolate all the paths that go from the root node down to a leaf with a value of 
+
+. For each path, we multiply the derivatives along the branches that make up the path, and finally sum these values together. In our graph, we have two paths that lead to 
+
+, starting from the top: reachable by traversing left
+
+left, or right
+
+left from the root. For the first path, the derivatives along the branches are 
+
+ and 
+
+ respectively, so multiplying them together gives us 
+
+. For the second path, the derivatives along the branches are also 
+
+ and 
+
+ respectively, so multiplying them together once again gives us 
+
+. Summing these two values gives us 
+
+, which is the derivative of 
+
+ with respect to 
+
+.
+
+With a function as simple as our example, the improvements in computational efficiency may not be immediately obvious, but for a more complex function with many variables, the computational savings can be significant. This is because we can reuse the intermediate results of the forward pass to compute the gradients in the backward pass. Further, the graph only needs to be constructed once, and for any value of the function's inputs, we can quickly compute the function value and its gradient. Before we try a more complex example, let's first put together a set of basic rules that we can use to construct these graphs, based on some of the most common elementary operations.
+
+For a multiplication operator, the derivative along one branch is simply the input along the other branch. This is because if 
+
+, then 
+
+ and 
+
+. For an addition operator, the derivative along both branches is 1. This is because if 
+
+, then 
+
+ and 
+
+. For subtraction, the derivative along the left branch is 1, and the derivative along the right branch is -1. This is because if 
+
+, then 
+
+ and 
+
+. For a power operator, the derivative along the base branch is the exponent times the base raised to the power of the exponent minus one. This is because if 
+
+, then 
+
+. Note that the power operator only takes one input. For a division operator, the derivative along the numerator branch is the reciprocal of the denominator, and the derivative along the denominator branch is the negative of the numerator divided by the square of the denominator. This is because if 
+
+, then 
+
+ and 
+
+.
+
+Let's now take a more complex example to illustrate how we can construct a computation graph and compute the gradient of the objective function with respect to its inputs. Recall the example of Linear Regression in a 2-dimensional space from class, where the objective was to minimize the Mean Squared Error. Let 
+
+ be the set of points to which we are trying to fit a line, and let the line be given by the equation 
+
+. The objective function was defined as 
+
+. We can construct a computation graph for this function as follows.
+
+Given what we know about elementary operations from earlier in these notes, most of this graph should be fairly easy to understand. One exception is the summation operator. Recall that a summation operator simply represents a sum of many terms. In our case, the sum operator represents the sum of all the squared errors across all points in our dataset. Here, we recall the sum rule in calculus, which states that the derivative of a sum of functions is the sum of the derivatives of the functions. In other words,
+
+Armed with this, we can now compute the gradient of the objective function, MSE, with respect to its inputs (
+
+ and 
+
+). From the top of the graph, there is one path that leads us to the leaf node 
+
+ (in reality there are 
+
+ paths, one for each data point in our data set). Multiplying the derivatives along this branch, and using the sum rule from above, we get:
+
+Similarly, for 
+
+, we get:
+
+Finally, we are ready to solve Linear Regression using Gradient Descent. In order to do so, we start with some initial estimate of 
+
+ and 
+
+, say 
+
+ and 
+
+. We then iteratively update 
+
+ and 
+
+ using the gradients we computed above. Recall that the update equations are given by:
+
+where 
+
+ is the learning rate. We repeat this process, alternating between updating the slope term 
+
+ and the intercept term 
+
+ until the gradients are close to zero, or until we reach a specified number of iterations without much change in our objective function. While we end our discussion of gradient descent here, we will once again, encounter it when we discuss Neural Networks later in the course.
+
+Here's another really nice resource about computation graphs and automatic differentiation: Blog post by Christopher Olah. Please note that there are minor differences between the representations of the computation graph used by Christopher and me. For grading purposes, please use the notation we've discussed in class - reflected in my notes above - in all problem sets.
+
+Feature Extraction, Vector Representations
+
+In machine learning, the first step is to transform raw data at hand into a structured set of informative features that can be fed into algorithms. This process involves selecting key characteristics from the data that are most relevant for the task at hand, often based on a domain knowledge, and converting them into numerical representations, which we can then use in order to compute complex relationships. This process is called feature extraction.
+
+There are a host of techniques used for converting raw data into numerical information - and the choice of which to use almost always depends on the problem, the model, and the data distribution. This is best explained with the following example.
+
+Spam Classification: Given a set of emails labeled as spam or ham (not spam), our goal is to build a machine learning algorithm that learns what differentiates spam emails from ham emails, based on a set of features provided to the model. In other words, given some numeric feature information about an email, we want to predict whether it is spam or ham. In order to do so, we must first select the features that are most relevant to the task at hand. If we consider building such a classifier for use at Northeastern University, the following features of an email will likely be useful for the task:
+
+Domain of the sender's address
+
+Call to action/sense of urgency
+
+Presence of attachments
+
+Presence of links
+
+Typos in the email
+
+Now given an email, we must convert these features into numerical representations, since the driving idea behind machine learning models is to learn mathematical relationships between the input and output data. Let us now reason about how each of these features can be converted into numerical representations.
+
+Sender Domain: The sender's email address can, in theory, be registered with one of infinitely many email domains. However, not every unique domain is necessarily relevant to the task of spam classification. For instance, the use of a domain such as northeastern.edu or khoury.ccs.edu is likely to be more indicative of a ham email than a spam email - but all we are concerned about is whether or not one of these trusted domains was used. If we have a list of trusted senders, we can reduce this feature set into a binary representation, that only captures whether the email was sent from a trusted domain. Therefore, we can convert the sender's domain into a binary feature, where the presence of a trusted domain is represented as a 1, and the presence of an untrusted domain is represented as a 0.
+
+Call to action/sense of urgency: The presence of a call to action or a sense of urgency in an email is often indicative of a spam email. (Think about emails that contain phrases such as 'requires your immediate attention'.) The more urgent an email appears, the more likely it is to be spam. We can convert this feature into a numerical representation in many ways; for now, let us assume we have access to a natural language tool that can analyze the text of an email and return a score that represents the urgency of the email. This score can then be used as a feature in our model. For simplicity, let us assume that the score ranges from 0 to 1, where 0 indicates no urgency and 1 indicates high urgency.
+
+Presence of attachments: Attachments in emails are often used to spread malware or viruses, and are therefore indicative of spam emails. We can convert this feature into a binary representation, where the presence of an attachment is represented as a 1, and the absence of an attachment is represented as a 0.
+
+Presence of links: Links in emails are often used to redirect users to malicious websites, and are therefore indicative of spam emails. We can convert this feature into a binary representation, where the presence of a link is represented as a 1, and the absence of a link is represented as a 0.
+
+Typos in the email: Spam emails often contain typos, as they are often generated by bots or non-native speakers. We can convert this feature into a numerical representation by counting the number of typos in an email. For instance, if an email contains 3 typos, we can represent this feature as 3. However, this method is not ideal, as the number of typos in an email is not necessarily bounded, and if we have a large number of typos, the feature can quickly dominate all other features. A better approach may be to normalize the feature by dividing the number of typos by the number of words in the email, such that we use the frequency of typos rather than the count as a feature. Another possible approach is to use a binning technique, where if the email contains 0-2 typos, we represent the feature as 0, if it contains 3-5 typos, we represent the feature as 1, and so on. Intuitively, this approach also captures the idea that a larger bin index is indicative of a larger number of typos being present in the email.
+
+Finally, once we have converted these features into numerical representations, we concatenate them into a single vector, which we can then use as input to our machine learning model. This vector representation is often referred to as a feature vector, and is the input to the model. The process of extracting features and converting them into a numerical vector is called vectorization. Feature extraction and vectorization are crucial steps in building machine learning models, as the quality of the features directly impacts the performance of the model. In practice, feature extraction is often an iterative process, where we experiment with different feature sets and representations to find the best combination for the task at hand.

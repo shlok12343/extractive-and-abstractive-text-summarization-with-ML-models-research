@@ -1,0 +1,233 @@
+Neural Networks
+
+Neural networks are a class of machine learning models that are inspired by the structure and function of the human brain. Much like neurons in the brain, neural networks are composed of interconnected nodes called perceptrons (also called neurons), that are organized in layers. Before we delve into the specifics of neural networks, let us first understand the structure of a single perceptron.
+
+A perceptron is a simple mathematical model, which takes a set of inputs, performs a weighted sum of these inputs, adds a bias term, and passes the result through an activation function to produce an output. The weighted sum of the inputs and the bias term is given by
+
+where 
+
+ is the weight vector, 
+
+ is the input vector, and 
+
+ is the bias term. The output of the perceptron is given by
+
+where 
+
+ is an activation function. An activation function is a non-linear function that introduces non-linearity into the model, and is what allows neural networks to learn very complex patterns in the data. The most commonly used activation functions are the now familiar sigmoid (
+
+) function, the hyperbolic tangent (
+
+) function, and the rectified linear unit (ReLU) function, shown below:
+
+Now, consider a perceptron that uses a sigmoid activation, in particular. Such a perceptron is shown below. Upon inspection, you may realize that this is equivalent to the function 
+
+ in logistic regression!
+
+In other words, we may think of each perceptron in a neural network as a smaller model that serves to either make a binary decision based on its inputs (for instance, by producing outputs converging to 
+
+ or 
+
+ for the sigmoid activation, outputs converging to 
+
+ or 
+
+ for the 
+
+ activation), or otherwise extract some useful information from the data (such as using ReLU, which retains 
+
+ when this quantity is greater than 
+
+). Each neuron, therefore, is a building block that can be used to model complex patterns in the data by serving as an intermediate feature extractor.
+
+To fully appreciate why this is important, we can look at a simple example. Imagine the four points in the following figure, which are not linearly separable (i.e., a single linear classifier would not be able to separate these points into two classes). However, by using a neural network with a single hidden layer, we can learn a non-linear decision boundary by combining two linear boundaries, such that it separates the two classes.
+
+The figure above shows the XOR problem, which is a classic example of a problem that cannot be solved by a single linear classifier. However, by using a neural network with a single hidden layer, we can learn a non-linear decision boundary that separates the two classes. Before we build such a network, however, think about how you might solve this problem using two linear classifiers instead of one.
+
+To solve the XOR problem by combining two linear classifiers, we can use the fact that the XOR gate is a combination of the AND and the OR gates, combined with a NOT gate, such that 
+
+. Here, both the OR and AND gates are linear classifiers, and can be represented by a line in 2D space in our example. The NOT gate is a linear classifier as well, but let's put that thought aside for a moment. The figure below shows one possible decision boundary each for the AND and OR gates respectively.
+
+The OR decision boundary labels everything to its right as 
+
+, and everything to its left as 
+
+. The AND decision boundary labels everything to its right as 
+
+, and everything to its left as 
+
+. The XOR decision boundary, therefore, needs to classify the points that lie to the right of the OR line as 
+
+, and the points that lie to the right of the AND line as 
+
+. However, we know from a previous section, that flipping the signs for the weight and bias terms for the AND decision boundary will label the points to its left as 
+
+ instead. However, we still need to combine these two decision boundaries into a single final prediction.
+
+Let us now finally construct a neural network with a single hidden layer, and think about how it may achieve such a combination. Imagine a neural network, with two input nodes, two nodes in the first hidden layer, and a single output node. Further, we can set the network up in such a way that the top node in the hidden layer represents the OR decision boundary from the above figure, and the bottom node represents the AND decision boundary (whether the direction of prediction is flipped about the line does not actually matter in this setting). How may we do this? Well, we know that the first node should represent a logistic regression that has the same behavior as the OR gate. In other words, its output should be close to 
+
+ if 
+
+ is 
+
+, and 
+
+ otherwise. This, in turn, is nothing but a probability that is based on distance from a line in 2-D space in our example (which is the same OR boundary from our figure). Finally, we know that we can represent a line in two dimensions using a weight vector and a bias term. Therefore, the weights and bias term for the top node in the hidden layer should be such that it represents the OR decision boundary. From the figure above, we can deduce that 
+
+ produces such a line. Similarly, the weights and bias term for the bottom node in the hidden layer should represent the AND decision boundary, and from our figure we can say that 
+
+ produces such a line. The final output node should then take the outputs from the two nodes in the hidden layer, and combine them to produce the XOR decision boundary. This setup is shown below:
+
+Now, let us work through the network, and see what is actually happening internally. The top node in the hidden layer takes the input 
+
+, and produces the value 
+
+. Since we have deliberately set 
+
+, we know that the output roughly corresponds to the behavior of the OR gate. For instance, for the point 
+
+, we get 
+
+, and 
+
+, which is closer to 
+
+ than it is to 
+
+. Similarly, for the point 
+
+, we get 
+
+, and 
+
+, which is closer to 
+
+. The bottom node in the hidden layer takes the same input 
+
+, and produces the value 
+
+. Since we have deliberately set 
+
+, we know that the output roughly corresponds to the behavior of the AND gate. For instance, for the point 
+
+, we get 
+
+, and 
+
+, which is closer to 
+
+ than it is to 
+
+. Similarly, for the point 
+
+, we get 
+
+, and 
+
+, which is closer to 
+
+ as expected. Now before we move on to the final output node, let us see what happens when we simply plot the outputs of the two nodes in the hidden layer for all the four points in our original dataset. For instance, for 
+
+, the output values are 
+
+, which forms one point in our new 2-D space. The following figure shows the outputs of the two nodes in the hidden layer for all the four points in the dataset, with the original location of each point denoted in the legend:
+
+Perhaps, the role of the final output node is now becoming clearer. The final output node, in this example, learns its own decision boundary in this latent space, such that it is able to separate the points that lie to the right of the OR line and the left of the AND line as 
+
+. This is the essence of how a neural network can learn complex patterns in the data by combining simpler decision boundaries learned by individual nodes in the hidden layer! In this new space (above figure), we can draw a linear decision boundary that separates the blue points (
+
+ and 
+
+) from the orange points (
+
+ and 
+
+), and this line acts as the XOR decision boundary. Specifically, we want the blue points to be classified as 
+
+ and the orange points to be classified as 
+
+. The weights and biases for the final output node can be set to 
+
+ to produce such a line, shown below.
+
+The final output node, therefore, takes the outputs of the two nodes in the hidden layer, and produces the value 
+
+. For instance, for the point 
+
+, we had 
+
+, and thus 
+
+. Since this value is closer to 
+
+ than to 
+
+, the final prediction for this point is technically correct, although barely so. This is simply down to the fact that we picked the decision boundaries, and therefore, the weights and biases based on intuition, rather than analytically finding the best possible values.
+
+The XOR problem is a classic example of a problem that cannot be solved by a single linear classifier, and requires a non-linear decision boundary. Neural networks, by combining multiple perceptrons in hidden layers, are able to learn such non-linear decision boundaries. The XOR problem is a simple example, but neural networks are capable of learning much more complex patterns in the data, especially when the neural network is deeper and wider. A deeper neural network is one that has more hidden layers, and a wider neural network is one that has more nodes in each hidden layer. Since the neural network acts as a composition of simple linear classifiers using nonlinear activations, a deeper network is able to learn more complex patterns in the data by combining simpler patterns learned by individual layers. One way to think about this is to think of how we can approximate any function using a combination of simple functions, all the way down to approximating curves with straight lines. In the same way, a neural network is able to approximate complex patterns in the data by combining simpler patterns learned by individual layers.
+
+Model Training
+
+Now that we have discussed the theory behind linear classifiers, logistic regression, and neural networks, let us turn our attention to how these models are trained in practice. The process of training a model involves finding the weights and biases that minimize a loss function that captures how badly our model is performing based on our current estimates of its parameters. This is typically done using gradient descent. Think about the XOR problem once again. What is the loss function that we wish to minimize in this case?
+
+Since our network has a single output that lies in the range 
+
+, we can interpret the model's output as the probability of the positive class. The loss function that we wish to minimize is, thus, once again the Binary Cross Entropy (BCE) loss, which we've already seen in Logistic Regression. The only difference here, is that the probability of the positive class is given be the output of a neural network, rather than a logistic regression model. For example, for the XOR neural network, the loss is given by
+
+In general, the BCE loss for a neural network is given by
+
+where 
+
+ is the set of all weights and biases in the neural network, and 
+
+ is the function that computes the output of the neural network. Note that in the general form, we specify the sigmoid function outside of 
+
+, since the output of the neural network could be anything (such as when using a ReLU activation at the final layer), and we want to map it to the range 
+
+ before computing the loss.
+
+The gradient of the loss function with respect to the weights and biases can be computed by applying the chain rule. Modern optimers (such as the ones in PyTorch) do this automatically using a technique called automatic differentiation, where internally, they build a computation graph of the operations that are performed on the input data, and then compute the gradients by traversing this graph backwards. This process is what we discussed in the section on gradient descent. The gradients are then used to update the weights and biases in the direction that minimizes the loss function. This process is repeated for a number of iterations, or until the loss converges. The learning rate is a hyperparameter that controls the size of the steps taken in the direction of the gradients, and is typically set to a small value. The process of training a model also involves splitting the data into a training set and a validation set. The model is trained on the training set, and the performance of the model is evaluated on the validation set. The loss on the validation set is used to tune hyperparameters such as the learning rate, the number of hidden layers, the number of nodes in each hidden layer, and so on. This process is called hyperparameter tuning, and is an important part of training a model. The model is finally evaluated on an unseen test set to get an unbiased estimate of its performance.
+
+Multiclass Classification: So far, we have discussed binary classification tasks, where the output is either 
+
+ or 
+
+. However, in many real-world scenarios, we wish to classify data into more than two classes. This is called multiclass classification. One way to extend binary classifiers to multiclass classifiers is to use the one-vs-all strategy. In this strategy, we train a binary classifier for each class, where the class is treated as the positive class, and all other classes are treated as the negative class. The final prediction is then made by selecting the class that has the highest probability according to the binary classifiers. This is a simple and effective strategy, and is used in practice for many multiclass classification tasks. In the context of neural networks, the output layer is simply modified to have as many nodes as there are classes. Each output node may be thought of as an independent binary classifier, classifying each input as either belonging to the 
+
+ class, or not. To be precise, this interpretation strictly works only when the activation function at the output layer is the sigmoid function, but in general, any other activations may be thought of as a weighted composition of features used to make the final decision instead.
+
+However, in this form, the outputs of the neural network do not necessarily sum to 
+
+. To convert the outputs to a valid probability distribution, the output of the network is passed through a softmax function. The softmax function is a generalization of the sigmoid function to multiple classes, and is defined as
+
+where 
+
+ is the output of the neural network, and 
+
+ is the number of classes. The output of the softmax function is a probability distribution over the classes, and the class with the highest probability is selected as the final prediction. The loss function used in this case is called the Categorical Cross Entropy loss, and is given by
+
+where 
+
+ is the true label of the 
+
+ data point for the 
+
+ class, and 
+
+ is the predicted probability of the 
+
+ data point belonging to the 
+
+ class. To further simplify notation, we can use the fact that both the true label and the predicted probability are vectors, and rewrite the loss function as
+
+where 
+
+ is a one-hot encoded representation of the true label of the 
+
+ data point, and 
+
+ is a vector of the same size as 
+
+, which contains the predicted probabilities of the 
+
+ data point belonging to each class.

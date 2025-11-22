@@ -1,0 +1,37 @@
+Unsupervised Learning
+
+Introduction to Unsupervised Learning
+
+Unsupervised learning is a type of machine learning where models are trained on unlabeled data, and the goal is to discover patterns or relationships in the data. Unlike supervised learning, there are no predefined output labels. The algorithms are left to discover the underlying structure of the data on their own. Unsupervised learning is often used for exploratory data analysis, customer segmentation, and anomaly detection.
+
+Clustering
+
+Clustering is a common unsupervised learning task that involves grouping a set of data points in such a way that points in the same group (called a cluster) are more similar to each other than to those in other clusters.
+
+**K-Means Clustering**: K-Means is one of the most popular clustering algorithms. The goal of the algorithm is to partition n data points into k clusters in which each data point belongs to the cluster with the nearest mean (cluster centroid).
+
+The K-Means algorithm works as follows:
+1.  Initialize k cluster centroids randomly.
+2.  Assign each data point to the nearest centroid.
+3.  Recalculate the centroids as the mean of all data points assigned to that cluster.
+4.  Repeat steps 2 and 3 until the cluster assignments no longer change.
+
+The algorithm is simple and efficient, but it requires the number of clusters, k, to be specified in advance and can be sensitive to the initial placement of centroids.
+
+**Hierarchical Clustering**: Hierarchical clustering is a method of cluster analysis which seeks to build a hierarchy of clusters. There are two main types:
+1.  **Agglomerative**: This is a "bottom-up" approach where each data point starts in its own cluster, and pairs of clusters are merged as one moves up the hierarchy.
+2.  **Divisive**: This is a "top-down" approach where all data points start in one cluster, and splits are performed recursively as one moves down the hierarchy.
+
+The result of hierarchical clustering is a tree-based representation of the objects, called a dendrogram, which shows the sequence of merges or splits.
+
+Dimensionality Reduction
+
+Dimensionality reduction is the process of reducing the number of random variables under consideration by obtaining a set of principal variables. It is often used to visualize high-dimensional data, reduce computational complexity, and remove redundant features.
+
+**Principal Component Analysis (PCA)**: PCA is a statistical procedure that uses an orthogonal transformation to convert a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables called principal components.
+
+The goal of PCA is to find the directions of maximum variance in the data and project the data onto a new subspace with fewer dimensions. These new dimensions, the principal components, are orthogonal to each other and capture as much of the original variance in the data as possible. PCA is widely used for data compression and visualization.
+
+**t-Distributed Stochastic Neighbor Embedding (t-SNE)**: t-SNE is a machine learning algorithm for visualization. It is a non-linear dimensionality reduction technique well-suited for embedding high-dimensional data for visualization in a low-dimensional space of two or three dimensions.
+
+t-SNE models each high-dimensional object by a two- or three-dimensional point in such a way that similar objects are modeled by nearby points and dissimilar objects are modeled by distant points with high probability. It is particularly good at revealing the underlying structure of the data, such as clusters, at many different scales.
