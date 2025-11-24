@@ -1,4 +1,4 @@
-from src.data_loader import get_training_data
+from src.data_loader import get_training_data, load_and_process_hf_summarization_dataset
 from src.preprocessor import TextPreprocessor
 from src.model import SummaryModel
 from src.summarizer import Summarizer
@@ -33,6 +33,29 @@ def main():
         hf_split="train[:500]",
         sample_size=400,
     )
+
+    # 1b. (Optional) Add another HF summarization dataset such as SAMSum.
+    # NOTE: Disabled for now because 'samsum' is not accessible in this environment.
+    # If you later add another dataset, you can re-enable this pattern:
+    #
+    # print("\nLoading additional HF dataset 'samsum' (dialogue summarization)...")
+    # sam_sentences, sam_labels = load_and_process_hf_summarization_dataset(
+    #     dataset_name="samsum",
+    #     text_field="dialogue",
+    #     summary_field="summary",
+    #     split="train[:2000]",
+    # )
+    # sentences.extend(sam_sentences)
+    # labels.extend(sam_labels)
+    #
+    # # Re-print label distribution after adding the extra dataset
+    # num_pos = sum(labels)
+    # num_neg = len(labels) - num_pos
+    # print(
+    #     f"Combined label distribution (after extra HF dataset): "
+    #     f"{num_pos} positives, {num_neg} negatives "
+    #     f"({num_pos / max(1, len(labels)):.3f} positive fraction)"
+    # )
 
     if not sentences:
         print("No training data found. Exiting.")
@@ -100,7 +123,8 @@ def main():
         print("No AMI validation examples were evaluated.")
 
     # 8. (Optional) Summarize one of our local lecture notes for a manual check
-    lecture_file_to_summarize = "data/lecture_notes_rl.txt"
+    # Change this to the unsupervised learning notes to inspect that summary.
+    lecture_file_to_summarize = "data/lecture_notes_unsupervised_learning.txt"
     print(f"\nLoading '{lecture_file_to_summarize}' for a manual summarization check...")
     lecture_to_summarize = load_single_lecture_note(lecture_file_to_summarize)
 
