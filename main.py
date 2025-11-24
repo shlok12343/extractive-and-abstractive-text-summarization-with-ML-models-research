@@ -1,15 +1,26 @@
-from src.data_loader import get_training_data, load_lecture_notes
+from src.data_loader import get_training_data
 from src.preprocessor import TextPreprocessor
 from src.model import SummaryModel
 from src.summarizer import Summarizer
+import os
+
+def load_single_lecture_note(file_path):
+    """Loads a single lecture note for summarization."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        print(f"Error: The file at {file_path} was not found.")
+        return ""
 
 def main():
     """
     Main function to run the summarization pipeline.
     """
     # 1. Load and prepare training data
+    # This will now use the CNN/Daily Mail dataset by default
     print("Loading training data...")
-    sentences, labels = get_training_data()
+    sentences, labels = get_training_data(use_cnn_dailymail=True, sample_size=200)
 
     if not sentences:
         print("No training data found. Exiting.")
@@ -29,9 +40,11 @@ def main():
     # 4. Create a summarizer
     summarizer = Summarizer(model=summary_model, preprocessor=preprocessor)
 
-    # 5. Load the lecture notes to be summarized
-    print("\nLoading lecture notes for summarization...")
-    lecture_to_summarize = load_lecture_notes() # Loads the sample by default
+    # 5. Load a lecture note to be summarized
+    # We'll summarize one of our local files for demonstration
+    lecture_file_to_summarize = "data/lecture_notes_rl.txt"
+    print(f"\nLoading '{lecture_file_to_summarize}' for summarization...")
+    lecture_to_summarize = load_single_lecture_note(lecture_file_to_summarize)
 
     if not lecture_to_summarize:
         print("No lecture notes to summarize. Exiting.")

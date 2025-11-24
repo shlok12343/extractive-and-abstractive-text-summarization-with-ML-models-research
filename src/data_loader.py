@@ -1,6 +1,8 @@
 import nltk
 import glob
 import os
+from datasets import load_dataset
+from rouge_score import rouge_scorer
 
 # Download 'punkt' if not available
 try:
@@ -8,19 +10,51 @@ try:
 except LookupError:
     nltk.download('punkt')
 
-def load_lecture_notes(file_path):
-    """Loads text from a single lecture note file."""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        print(f"Error: The file at {file_path} was not found.")
-        return ""
-
-def get_training_data():
+def load_and_process_cnn_dailymail(sample_size=100):
     """
-    Loads all lecture notes, tokenizes them, and provides manually labeled training data.
-    The labels indicate whether a sentence is important for a summary (1) or not (0).
+    Downloads and processes the CNN/Daily Mail dataset.
+    It programmatically labels sentences based on their ROUGE score
+    with the summary.
+    """
+    print("Loading CNN/Daily Mail dataset...")
+    # Load a subset of the dataset for demonstration purposes
+    dataset = load_dataset("cnn_dailymail", "3.0.0", split=f"train[:{sample_size}]")
+    
+    all_sentences = []
+    all_labels = []
+
+    scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
+
+    print(f"Processing {sample_size} articles...")
+    for i, example in enumerate(dataset):
+        if (i + 1) % 10 == 0:
+            print(f"  Processed {i + 1}/{sample_size} articles")
+        
+        article_text = example['article']
+        summary_text = example['highlights']
+        
+        sentences = nltk.sent_tokenize(article_text)
+        if not sentences:
+            continue
+
+        # Calculate ROUGE scores for each sentence against the summary
+        scores = [scorer.score(summary_text, sent)['rougeL'].fmeasure for sent in sentences]
+        
+        # Simple labeling strategy: label the top 3 sentences with the highest ROUGE scores as important
+        # In a more advanced scenario, you might use a threshold or a more sophisticated method.
+        top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:3]
+        
+        labels = [1 if i in top_indices else 0 for i in range(len(sentences))]
+
+        all_sentences.extend(sentences)
+        all_labels.extend(labels)
+
+    print("Finished processing CNN/Daily Mail dataset.")
+    return all_sentences, all_labels
+
+def load_local_lecture_notes():
+    """
+    Loads all local lecture notes, tokenizes them, and provides manually labeled training data.
     """
     data_path = "data/"
     all_sentences = []
@@ -163,7 +197,6 @@ def get_training_data():
         ]
     }
 
-    # Find all lecture note files in the data directory
     lecture_files = glob.glob(os.path.join(data_path, "lecture_notes*.txt"))
 
     for file_path in lecture_files:
@@ -174,13 +207,22 @@ def get_training_data():
         sentences = nltk.sent_tokenize(notes)
         file_name = os.path.basename(file_path)
         
-        # Get the important sentences for the current file
         important_sentences = important_sentences_map.get(file_name, [])
         
-        # Create labels based on the important sentences
         labels = [1 if s in important_sentences else 0 for s in sentences]
 
         all_sentences.extend(sentences)
         all_labels.extend(labels)
 
     return all_sentences, all_labels
+
+def get_training_data(use_cnn_dailymail=True, sample_size=100):
+    """
+    Main function to get training data.
+    By default, it uses the CNN/Daily Mail dataset.
+    Set use_cnn_dailymail to False to use local lecture notes.
+    """
+    if use_cnn_dailymail:
+        return load_and_process_cnn_dailymail(sample_size=sample_size)
+    else:
+        return load_local_lecture_notes()
