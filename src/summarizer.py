@@ -17,9 +17,9 @@ class Summarizer:
         predictions = self.model.predict(X_test)
 
         # Get probabilities for the 'important' class (class 1)
-        # Check if the model has predict_proba attribute
-        if hasattr(self.model.model, 'predict_proba'):
-            probabilities = self.model.predict_proba(X_test)[:, 1]
+        # Check if the underlying sklearn model has predict_proba
+        if hasattr(self.model, "model") and hasattr(self.model.model, "predict_proba"):
+            probabilities = self.model.model.predict_proba(X_test)[:, 1]
         else:
             # Fallback for models without predict_proba - use predictions as scores
             probabilities = predictions

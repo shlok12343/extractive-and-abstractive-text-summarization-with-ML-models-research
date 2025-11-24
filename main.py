@@ -28,8 +28,8 @@ def main():
         use_cnn_dailymail=True,
         use_hf_lecture_dataset=True,
         hf_dataset_name="TanveerAman/AMI-Corpus-Text-Summarization",
-        hf_text_field="dialogue",
-        hf_summary_field="summary",
+        hf_text_field="Dialogue",
+        hf_summary_field="Summaries",
         hf_split="train[:100]",
         sample_size=200,
     )
@@ -81,8 +81,8 @@ def main():
 
     print("Evaluating document-level ROUGE scores on AMI validation examples...")
     for ex in ami_val:
-        doc_text = ex["dialogue"]
-        gold_summary = ex["summary"]
+        doc_text = ex["Dialogue"]
+        gold_summary = ex["Summaries"]
 
         pred_summary = summarizer.summarize(doc_text, num_sentences=5)
         scores = rouge.score(gold_summary, pred_summary)
