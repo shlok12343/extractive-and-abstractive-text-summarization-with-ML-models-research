@@ -5,7 +5,7 @@ class Summarizer:
         self.model = model
         self.preprocessor = preprocessor
 
-    def summarize(self, text, num_sentences=3):
+    def summarize(self, text, num_sentences=5):
         """
         Summarizes the text by selecting the most important sentences.
         """

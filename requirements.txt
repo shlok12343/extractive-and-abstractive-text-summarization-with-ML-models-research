@@ -3,3 +3,7 @@ nltk
 datasets
 rouge-score
 joblib
+requests
+transformers
+torch
+requests
