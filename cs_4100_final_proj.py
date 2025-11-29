@@ -7,6 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/1TFgs4IzO1D2q0LEzQJcvNHFyQwUVKhIQ
 """
 
+#!pip install rouge_score
+
 # imports
 import pandas as pd
 import re
@@ -27,6 +29,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, classification_report
+from rouge_score import rouge_scorer
 
 # read in data
 df_transcript = pd.read_csv('youtube_transcripts.csv')
@@ -76,7 +79,7 @@ df_transcript['lecture_section'] = df_transcript['transcript_clean'].str.split()
 nltk.download('punkt')
 nltk.download("punkt_tab")
 
-def smart_sentence_split(transcript):
+def split_sentences(transcript):
     # first approach - typical tokenizing
     sentences = nltk.sent_tokenize(transcript)
 
@@ -94,7 +97,7 @@ def smart_sentence_split(transcript):
     # Clean extra whitespace
     return [sentence.strip() for sentence in sentences if len(sentence.strip()) > 0]
 
-df_transcript['sentence'] = df_transcript['transcript_clean'].apply(smart_sentence_split)
+df_transcript['sentence'] = df_transcript['transcript_clean'].apply(split_sentences)
 
 # combine short sentences
 def merge_short_sentences(sentences, min_len=40):
@@ -303,30 +306,38 @@ y_train = y[mask_train]
 y_test  = y[mask_test]
 y_val = y[mask_val]
 
-log_reg = LogisticRegression(
+log_reg_model = LogisticRegression(
     max_iter=500,
     class_weight='balanced',
     solver='liblinear'
 )
-log_reg.fit(X_tfidf_train, y_train)
+log_reg_model.fit(X_tfidf_train, y_train)
 
-y_pred_val = log_reg.predict(X_tfidf_val)
+y_pred_val = log_reg_model.predict(X_tfidf_val)
 print(classification_report(y_val, y_pred_val))
 
-y_pred_test = log_reg.predict(X_tfidf_test)
+y_pred_test = log_reg_model.predict(X_tfidf_test)
 print(classification_report(y_test, y_pred_test))
 
 class FF_Net_Summary(nn.Module):
     def __init__(self, input_dim):
         super().__init__()
         self.fc1 = nn.Linear(input_dim, 256)
+        self.drop1 = nn.Dropout(0.3)
+
         self.fc2 = nn.Linear(256, 128)
+        self.drop2 = nn.Dropout(0.3)
+
         self.fc3 = nn.Linear(128, 1) # single output
 
     def forward(self, x):
         f1 = F.relu(self.fc1(x))
-        f2 = F.relu(self.fc2(f1))
-        output = self.fc3(f2)
+        d1 = self.drop1(f1)
+
+        f2 = F.relu(self.fc2(d1))
+        d2 = self.drop2(f2)
+
+        output = self.fc3(d2)
         return output
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -341,8 +352,15 @@ y_tensor_val   = torch.tensor(y_val,   dtype=torch.float32).to(device)
 
 input_dim = X_tfidf_train.shape[1]
 feedforward_net_summary = FF_Net_Summary(input_dim).to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer_ffn_summary = optim.SGD(feedforward_net_summary.parameters(), lr=0.01)
+
+n_neg = (y_train == 0).sum()
+n_pos = (y_train == 1).sum()
+pos_weight_value = n_neg / n_pos
+
+pos_weight = torch.tensor([pos_weight_value], dtype=torch.float32).to(device)
+
+criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+optimizer_ffn_summary = optim.Adam(feedforward_net_summary.parameters(),  lr=0.001, weight_decay=1e-4)
 
 batch_size = 64
 num_epochs = 25
@@ -369,18 +387,255 @@ for epoch in range(num_epochs):
 
     print(f"Epoch {epoch+1}/{num_epochs} - loss: {epoch_loss:.4f}")
 
-def evaluate(model, X_tensor, y_true):
+def evaluate(model, X_tensor, y_true, threshold=0.35):
     model.eval()
     with torch.no_grad():
         outputs = model(X_tensor).squeeze(1)
         probs = torch.sigmoid(outputs).cpu().numpy()
-        preds = (probs >= 0.35).astype(int)
+        preds = (probs >= threshold).astype(int)
 
     print(classification_report(y_true, preds))
-    return preds
+    return probs, preds
 
 print('validation performance')
-preds_val = evaluate(feedforward_net_summary, X_tensor_val, y_val)
+probs_val, preds_val = evaluate(feedforward_net_summary, X_tensor_val, y_val)
 
 print('test performance')
-preds_test = evaluate(feedforward_net_summary, X_tensor_test, y_test)
+probs_test, preds_test = evaluate(feedforward_net_summary, X_tensor_test, y_test)
+
+def summarize_lecture(transcript, tfidf, log_reg_model, nn_model,
+                      max_sentences=SUMMARY_MAX_LEN):
+    # clean and split transcript
+    transcript_clean = clean_transcript_lang(transcript.lower())
+    sentences = merge_short_sentences(split_sentences(transcript_clean))
+
+    # vectorize
+    X = tfidf.transform(sentences)
+
+    # logistic regression
+    probs_log_reg = log_reg_model.predict_proba(X)[:, 1]
+    # choose top-K sentences
+    k = min(max_sentences, len(sentences))
+    idxs_log_reg = np.argsort(probs_log_reg)[-k:]
+    idxs_log_reg = np.sort(idxs_log_reg)  # keep original order
+    summary_log_reg = [sentences[i] for i in idxs_log_reg]
+
+    # NN
+    X_tensor = torch.tensor(X.toarray(), dtype=torch.float32).to(device)
+    nn_model.eval()
+    with torch.no_grad():
+        outputs = nn_model(X_tensor).squeeze(1)
+        probs_nn = torch.sigmoid(outputs).cpu().numpy()
+    idxs_nn = np.argsort(probs_nn)[-k:]
+    idxs_nn = np.sort(idxs_nn)
+    summary_nn = [sentences[i] for i in idxs_nn]
+
+    return sentences, summary_log_reg, summary_nn
+
+scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
+
+rouge_log_reg = []
+rouge_nn = []
+
+for id_script in ids_test:
+    # get transcript and hand summary
+    transcript = df_transcript.loc[df_transcript['transcript_id']==id_script, 'transcript_clean'].iloc[0]
+    hand_summ = df_summ.loc[df_summ['transcript_id']==id_script, 'paraphrased_summary'].iloc[0]
+
+    # generate summaries
+    sentences, summary_log_reg, summary_nn = summarize_lecture(transcript, tfidf, log_reg_model, feedforward_net_summary)
+
+    log_s_text = " ".join(summary_log_reg)
+    nn_s_text  = " ".join(summary_nn)
+
+    # compute scores
+    rouge_log_reg.append(scorer.score(hand_summ, log_s_text))
+    rouge_nn.append(scorer.score(hand_summ, nn_s_text))
+
+rouge_log_reg
+
+rouge_nn
+
+# def avg_rouge_for_K(K, ids_subset):
+#     lr_scores = {'rouge1': [], 'rouge2': [], 'rougeL': []}
+#     nn_scores = {'rouge1': [], 'rouge2': [], 'rougeL': []}
+
+#     for tid in ids_subset:
+#         # reference summary
+#         hand_summ = df_summ.loc[df_summ['transcript_id'] == tid,
+#                                 'paraphrased_summary'].iloc[0]
+#         # full transcript
+#         transcript = df_transcript.loc[df_transcript['transcript_id'] == tid,
+#                                        'transcript_clean'].iloc[0]
+
+#         _, summ_lr, summ_nn = summarize_lecture(
+#             transcript,
+#             tfidf,
+#             log_reg_model,
+#             feedforward_net_summary,
+#             max_sentences=K
+#         )
+
+#         text_lr = " ".join(summ_lr)
+#         text_nn = " ".join(summ_nn)
+
+#         score_lr = scorer.score(hand_summ, text_lr)
+#         score_nn = scorer.score(hand_summ, text_nn)
+
+#         for key in lr_scores.keys():
+#             lr_scores[key].append(score_lr[key].fmeasure)
+#             nn_scores[key].append(score_nn[key].fmeasure)
+
+#     # average f1s
+#     avg_lr = {k: float(np.mean(v)) for k, v in lr_scores.items()}
+#     avg_nn = {k: float(np.mean(v)) for k, v in nn_scores.items()}
+
+#     # composite of rouge1, rouge2, and rougel
+#     composite_lr = (avg_lr['rouge1'] + avg_lr['rouge2'] + avg_lr['rougeL']) / 3.0
+#     composite_nn = (avg_nn['rouge1'] + avg_nn['rouge2'] + avg_nn['rougeL']) / 3.0
+
+#     return avg_lr, avg_nn, composite_lr, composite_nn
+
+# candidate_K = [5, 7, 8, 10, 12]
+
+# best_K = None
+# best_composite_both = -1.0
+
+# print("Tuning max_sentences (K) on validation set...")
+# for K in candidate_K:
+#     avg_lr_val, avg_nn_val, comp_lr_val, comp_nn_val = avg_rouge_for_K(K, ids_val)
+
+#     composite_both = (comp_lr_val + comp_nn_val) / 2.0
+
+#     print(f"\nK = {K}")
+#     print("  LogReg ROUGE F1s:  R1={:.3f}, R2={:.3f}, RL={:.3f}, composite={:.3f}"
+#           .format(avg_lr_val['rouge1'], avg_lr_val['rouge2'],
+#                   avg_lr_val['rougeL'], comp_lr_val))
+#     print("  NN     ROUGE F1s:  R1={:.3f}, R2={:.3f}, RL={:.3f}, composite={:.3f}"
+#           .format(avg_nn_val['rouge1'], avg_nn_val['rouge2'],
+#                   avg_nn_val['rougeL'], comp_nn_val))
+#     print("  Avg composite (LR+NN): {:.3f}".format(composite_both))
+
+#     if composite_both > best_composite_both:
+#         best_composite_both = composite_both
+#         best_K = K
+
+# print(f"\nChosen K (max_sentences) based on composite ROUGE (val): {best_K}")
+
+# avg_lr_test, avg_nn_test, comp_lr_test, comp_nn_test = avg_rouge_for_K(best_K, ids_test)
+
+# print("\nFINAL TEST ROUGE with tuned K =", best_K)
+
+# print("\nLogistic Regression:")
+# print("  ROUGE-1 F1: {:.3f}".format(avg_lr_test['rouge1']))
+# print("  ROUGE-2 F1: {:.3f}".format(avg_lr_test['rouge2']))
+# print("  ROUGE-L F1: {:.3f}".format(avg_lr_test['rougeL']))
+# print("  Composite  : {:.3f}".format(comp_lr_test))
+
+# print("\nNeural Net:")
+# print("  ROUGE-1 F1: {:.3f}".format(avg_nn_test['rouge1']))
+# print("  ROUGE-2 F1: {:.3f}".format(avg_nn_test['rouge2']))
+# print("  ROUGE-L F1: {:.3f}".format(avg_nn_test['rougeL']))
+# print("  Composite  : {:.3f}".format(comp_nn_test))
+
+# sentences_all, summ_log_reg, summ_nn = summarize_lecture(
+#     entry_text,
+#     tfidf,
+#     log_reg_model,
+#     feedforward_net_summary,
+#     max_sentences=10
+# )
+
+# print("Logistic Regression Summary:\n")
+# for s in summary_log_reg:
+#     print(" ", s)
+
+# print("\nNeural Net Summary:\n")
+# for s in summary_nn:
+#     print(" ", s)
+
+example_tid = ids_test[0]  # or any id from ids_test
+
+example_text = df_transcript.loc[
+    df_transcript['transcript_id'] == example_tid,
+    'transcript_clean'
+].iloc[0]
+
+example_ref = df_summ.loc[
+    df_summ['transcript_id'] == example_tid,
+    'paraphrased_summary'
+].iloc[0]
+
+sentences_all, summ_lr, summ_nn = summarize_lecture(
+    example_text,
+    tfidf,
+    log_reg_model,
+    feedforward_net_summary,
+    max_sentences=best_K
+)
+
+print("REFERENCE (hand-written) SUMMARY:\n")
+print(example_ref, "\n")
+
+print("LOGISTIC REGRESSION SUMMARY:\n")
+for s in summ_lr:
+    print(" ", s)
+
+print("\nNEURAL NET SUMMARY:\n")
+for s in summ_nn:
+    print(" ", s)
+
+summarized_ids = df_final['transcript_id'].unique()
+unsummarized_pool = df_transcript[
+    ~df_transcript['transcript_id'].isin(summarized_ids)
+]
+
+entry = unsummarized_pool.sample(1, random_state=42).iloc[0]
+entry_text = entry['transcript_clean']
+
+sentences_all_unseen, summ_lr_unseen, summ_nn_unseen = summarize_lecture(
+    entry_text,
+    tfidf,
+    log_reg_model,
+    feedforward_net_summary,
+    max_sentences=best_K
+)
+
+print("UNSEEN LECTURE – LOGISTIC REGRESSION SUMMARY:\n")
+for s in summ_lr_unseen:
+    print(" ", s)
+
+print("\nUNSEEN LECTURE – NEURAL NET SUMMARY:\n")
+for s in summ_nn_unseen:
+    print(" ", s)
+
+# genetic algorithms lecture text
+ga_text = """
+Genetic Algorithms are a class of search algorithms inspired by the process of natural selection, and can be viewed as an extension/combination of some of the local search techniques we have discussed so far. The algorithm, much like local beam search, maintains a population of candidate solutions, and iteratively applies genetic operators to the population to generate new candidate solutions. These genetic operators broadly consist of mutations and crossovers, discussed below. The algorithm proceeds by iteratively generating new candidates using these operators, and then using a fitness function to retain some subset of the best-performing solutions, in a workflow similar to local beam search
+
+Mutations: These are random changes to a candidate solution, just like in regular hill climbing. For example, in the case of a binary string, a mutation could involve flipping a single bit from 0 to 1 or vice-versa. In the case of a real-valued vector, a mutation could involve adding a small random number to one of the vector's elements. In the case of the traveling salesman problem, a 2-opt swap could be a mutation. Mutations are used to introduce new information into the population, and to prevent the algorithm from getting stuck in local optima. The rate at which these random changes are applied to each candidate solution is controlled by a parameter called the mutation rate, and may vary throughout the execution of the program (similar to how we decrease probability of large changes over time in Simulated Annealing). Crossovers: These are operations that combine two candidate solutions to produce one or more new candidate solutions. For example, in the case of a binary string or a real-valued 1-dimensional vector, one possible crossover could involve taking the first half of one parent and the second half of another parent to produce a new child string/vector. In the case of the traveling salesman problem, crossovers might involve more steps and some logical parsing of the two parent solutions (see below). Crossovers are used to combine information from two candidate solutions that are already good, in the hopes of producing an even better solution. Complex crossovers may often be necessary, especially in cases where the validity of a solution depends on the structure of its representation. For example, consider the traveling salesman problem with 5 cities, named A, B, C, D and E. Assuming all cities are connected, one possible solution could be the string "ABCDEA", which represents the order in which the cities are visited. A second candidate solution could be AECDBA. Now, let's try and combine these solutions using a crossover operation. A simple crossover between the two parents "ABCDEA" and "AECDBA" where we combine the first half of the first parent with the second half of the second parent would yield the string "ABCDBA", which is not a valid solution to the TSP. This is because the child visits city B twice, and does not visit city E at all. A more complex crossover could involve parsing the two parents and combining them in a way that ensures that the child visits each city exactly once. This is known as the Order Crossover (OX) operator.
+"""
+
+# K_for_demo = best_K if "best_K" in globals() else 10
+
+K_for_demo = 10
+
+sentences_ga, ga_log_reg, ga_nn = summarize_lecture(
+    ga_text,
+    tfidf,
+    log_reg_model,
+    feedforward_net_summary,
+    max_sentences=K_for_demo
+)
+
+print("ORIGINAL SENTENCE CHUNKS:\n")
+for s in sentences_ga:
+    print(" -", s)
+
+print("\nLOGISTIC REGRESSION SUMMARY:\n")
+for s in ga_log_reg:
+    print(" •", s)
+
+print("\nNEURAL NET SUMMARY:\n")
+for s in ga_nn:
+    print(" •", s)
