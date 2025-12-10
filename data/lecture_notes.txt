@@ -1,27 +1,3 @@
-<<<<<<< HEAD
-This is a sample lecture note.
-Natural Language Processing (NLP) is a subfield of artificial intelligence (AI).
-It is concerned with the interaction between computers and humans in natural language.
-The ultimate objective of NLP is to read, decipher, understand, and make sense of the human languages in a manner that is valuable.
-NLTK is a powerful library for NLP.
-Scikit-learn is a great tool for machine learning.
-This project will use these tools to summarize text.
-Summarization is the task of producing a concise and fluent summary while preserving key information content and overall meaning.
-There are two main types of summarization: extractive and abstractive.
-Extractive summarization selects important sentences from the original text.
-Abstractive summarization generates new sentences.
-This project will focus on extractive summarization.
-Random forests are an ensemble learning method for classification, regression and other tasks.
-They operate by constructing a multitude of decision trees at training time.
-For classification tasks, the output of the random forest is the class selected by most trees.
-TF-IDF, short for term frequency–inverse document frequency, is a numerical statistic that is intended to reflect how important a word is to a document in a collection or corpus.
-It is often used as a weighting factor in searches of information retrieval, text mining, and user modeling.
-The tf–idf value increases proportionally to the number of times a word appears in the document and is offset by the number of documents in the corpus that contain the word, which helps to adjust for the fact that some words appear more frequently in general.
-This is a sample text for the lecture notes summarizer.
-It contains multiple sentences on different topics related to NLP and machine learning.
-The goal is to see how the summarizer works on this text.
-The end.
-=======
 The preceding discussions on search algorithms delved into methods for traversing state-space graphs from an initial state to a goal, emphasizing the construction and the preservation of a path throughout the process. However, many real-life problems do not focus on the specific path taken to reach the goal. Examples of such problems include job-shop scheduling, automatic programming, telecommunications network optimization, vehicle routing, and portfolio management. In these cases, the focus is primarily on the final configuration of the solution, rather than the journey taken to attain it.
 
 With this in mind, we now turn our attention to local search methods. Unlike their counterparts, local searches operate exclusively on the current node, often choosing to evaluate its immediate neighbors without retaining any path in memory. Local search algorithms offer two key advantages in scenarios where the path to the goal is inconsequential:
@@ -110,4 +86,3 @@ Random Restarts: One of the most popular methods to circumvent getting stuck in 
 Random Downhill Steps: A second way to wiggle our way out of local optima is to allow steps that lead to a worse objective function value with a small probability. In the above example, from the local optimum peak around 
 , if we allowed the search algorithm to accept a neighbor on its right (combined with the step-size being large enough), then a subsequent step could get us to the global optimum. This approach is also known as Stochastic Hill Climbing.
 
->>>>>>> tfidf-extractive-methods

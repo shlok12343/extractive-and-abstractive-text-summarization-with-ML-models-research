@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-# CS4100_Final_Project
-Final project for CS4100. Implementation that will provide summaries of academic material.
-
-Cited Dataset:
-https://www.kaggle.com/datasets/jfcaro/5000-transcripts-of-youtube-ai-related-videos
-=======
 ## Project: Extractive & Abstractive Summarization
 
 This project implements:
@@ -284,4 +277,3 @@ This will:
    - Train with `llm_cnn.py --mode train ...`, then evaluate with `--mode eval`.
 
 
->>>>>>> tfidf-extractive-methods

@@ -6,24 +6,8 @@ def check_nltk_data():
     try:
         nltk.data.find('tokenizers/punkt')
     except LookupError:
-<<<<<<< HEAD
-        print("="*50)
-        print("NLTK 'punkt' tokenizer not found.")
-        print("Please download it manually.")
-        print("1. Open a Python interpreter:")
-        print("   >>> import nltk")
-        print("   >>> nltk.download('punkt')")
-        print("This will open the NLTK downloader. Please select the 'punkt' package and download it.")
-        print("="*50)
-        # We will not exit here, to allow the user to see the rest of the program's flow,
-        # but it will likely fail on sent_tokenize.
-        # import sys
-        # sys.exit(1)
-
-=======
         print("NLTK 'punkt' tokenizer not found.")
        
->>>>>>> tfidf-extractive-methods
 check_nltk_data()
 
 def split_into_sentences(text):
@@ -32,11 +16,7 @@ def split_into_sentences(text):
 
 class TextPreprocessor:
     def __init__(self):
-<<<<<<< HEAD
-        self.vectorizer = TfidfVectorizer()
-=======
         self.vectorizer = TfidfVectorizer(stop_words="english")
->>>>>>> tfidf-extractive-methods
 
     def fit_transform(self, sentences):
         """Fits the vectorizer to the sentences and transforms them into a matrix of TF-IDF features."""

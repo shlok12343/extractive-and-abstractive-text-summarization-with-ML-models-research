@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-from src.data_loader import get_training_data, load_lecture_notes
-from src.preprocessor import TextPreprocessor
-from src.model import SummaryModel
-from src.summarizer import Summarizer
-
-def main():
-    """
-    Main function to run the summarization pipeline.
-    """
-    # 1. Load and prepare training data
-    print("Loading training data...")
-    sentences, labels = get_training_data()
-=======
 from src.data_loader import get_training_data, load_and_process_hf_summarization_dataset
 from src.preprocessor import TextPreprocessor
 from src.model import SummaryModel
@@ -29,7 +15,7 @@ import argparse
 import os
 import requests
 
-# used AI for debugging, generating synthetic data, syntax.
+# used AI for debugging, generating synthetic data, syntax, readm and minor modifications to functions.
 
 
 def load_single_lecture_note(file_path):
@@ -123,31 +109,11 @@ def train_main(classifier: str = "rf") -> None:
         use_hf_lecture_dataset=False,
         sample_size=200000,
     )
->>>>>>> tfidf-extractive-methods
 
     if not sentences:
         print("No training data found. Exiting.")
         return
 
-<<<<<<< HEAD
-    # 2. Preprocess the training data
-    print("Preprocessing data...")
-    preprocessor = TextPreprocessor()
-    X_train = preprocessor.fit_transform(sentences)
-
-    # 3. Train the model
-    print("Training model...")
-    summary_model = SummaryModel()
-    summary_model.train(X_train, labels)
-    print("Model training complete.")
-
-    # 4. Create a summarizer
-    summarizer = Summarizer(model=summary_model, preprocessor=preprocessor)
-
-    # 5. Load the lecture notes to be summarized
-    print("\nLoading lecture notes for summarization...")
-    lecture_to_summarize = load_lecture_notes() # Loads the sample by default
-=======
     num_pos = sum(labels)
     total = len(labels)
     print(
@@ -289,26 +255,11 @@ def test_main(classifier) -> None:
     lecture_file_to_summarize = "data/lecture_notes_ai_genetic.txt"
     print(f"\nLoading '{lecture_file_to_summarize}' for a manual summarization check...")
     lecture_to_summarize = load_single_lecture_note(lecture_file_to_summarize)
->>>>>>> tfidf-extractive-methods
 
     if not lecture_to_summarize:
         print("No lecture notes to summarize. Exiting.")
         return
 
-<<<<<<< HEAD
-    # 6. Generate and print the summary
-    print("Generating summary...")
-    summary = summarizer.summarize(lecture_to_summarize, num_sentences=5)
-
-    print("\n--- Original Text ---")
-    print(lecture_to_summarize)
-    print("\n--- Summary ---")
-    print(summary)
-
-
-if __name__ == "__main__":
-    main()
-=======
     print("Generating summary for local lecture note...")
     summary = summarizer.summarize(lecture_to_summarize, num_sentences=5)
 
@@ -388,4 +339,3 @@ if __name__ == "__main__":
     else:
         # LLM baseline ignores the classifier argument
         test_llm_baseline()
->>>>>>> tfidf-extractive-methods

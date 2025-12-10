@@ -1,7 +1,5 @@
 scikit-learn
 nltk
-<<<<<<< HEAD
-=======
 datasets
 rouge-score
 joblib
@@ -9,4 +7,4 @@ requests
 transformers
 torch
 requests
->>>>>>> tfidf-extractive-methods
+
