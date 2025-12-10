@@ -288,7 +288,7 @@ This uses the environment set up in class. If packages/dependences are not insta
 
 3. To run the improved logistic regression model and the FFN, run log_reg_and_ffn.py using the pickle files found in the pkl_files directory (i.e. python log_reg_and_ffn.py). If you want to use your locally generated files from the previous step, modify the source code and change dependencies accordingly, or replace the existing pkl files.
 
-4. Run rouge_and_summarization.py using the respective pickle, npy and pth files found in their respective directories (i.e. python rouge_and_summarization.py). Again, if you want to use your locally generated files form the previous step, modify the source code and change dependencies accordingly, or replace existing file.
+4. Run rouge_and_summarization.py using the respective pickle, npy and pth files found in their respective directories (i.e. python rouge_and_summarization.py). Again, if you want to use your locally generated files form the previous step, modify the source code and change dependencies accordingly, or replace existing files.
 
 ---
 
