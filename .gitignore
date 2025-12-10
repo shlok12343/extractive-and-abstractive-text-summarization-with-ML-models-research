@@ -114,3 +114,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+<<<<<<< HEAD
+=======
+
+# Model artifacts (do not commit)
+artifacts/
+data/
+data/train-00000-of-00015.parquet
+>>>>>>> tfidf-extractive-methods

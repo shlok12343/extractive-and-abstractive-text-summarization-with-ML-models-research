@@ -1,0 +1,49 @@
+Model Evaluation and Regularization
+
+Introduction to Model Evaluation
+
+In machine learning, model evaluation is the process of using different evaluation metrics to understand a machine learning model's performance, as well as its strengths and weaknesses. It is a crucial step in the model development process, as it helps in selecting the best model that fits the data and solves the problem.
+
+Evaluation Metrics for Classification
+
+For classification tasks, several metrics are used to evaluate a model's performance. These are often based on the confusion matrix, which is a table that summarizes the performance of a classification model.
+
+**Confusion Matrix**:
+-   **True Positives (TP)**: The model correctly predicted the positive class.
+-   **True Negatives (TN)**: The model correctly predicted the negative class.
+-   **False Positives (FP)**: The model incorrectly predicted the positive class (a "Type I error").
+-   **False Negatives (FN)**: The model incorrectly predicted the negative class (a "Type II error").
+
+Based on the confusion matrix, we can calculate the following metrics:
+
+-   **Accuracy**: The ratio of correctly predicted instances to the total instances. Accuracy = (TP + TN) / (TP + TN + FP + FN). It is a good metric when the classes are balanced.
+
+-   **Precision**: The ratio of correctly predicted positive instances to the total predicted positive instances. Precision = TP / (TP + FP). It measures the model's accuracy in predicting the positive class.
+
+-   **Recall (Sensitivity)**: The ratio of correctly predicted positive instances to all instances in the actual positive class. Recall = TP / (TP + FN). It measures the model's ability to find all the positive instances.
+
+-   **F1-Score**: The harmonic mean of Precision and Recall. F1-Score = 2 * (Precision * Recall) / (Precision + Recall). It provides a single score that balances both the concerns of precision and recall.
+
+Cross-Validation
+
+Cross-validation is a resampling technique used to evaluate machine learning models on a limited data sample. The most common method is k-fold cross-validation.
+
+**K-Fold Cross-Validation**:
+1.  The original dataset is randomly partitioned into k equal-sized subsamples.
+2.  Of the k subsamples, a single subsample is retained as the validation data for testing the model, and the remaining k-1 subsamples are used as training data.
+3.  The cross-validation process is then repeated k times, with each of the k subsamples used exactly once as the validation data.
+4.  The k results can then be averaged to produce a single estimation.
+
+This approach provides a more robust estimate of the model's performance on unseen data and helps in mitigating overfitting.
+
+Regularization
+
+Regularization is a set of techniques used to prevent overfitting in machine learning models. Overfitting occurs when a model learns the training data too well, including its noise, and as a result, performs poorly on new, unseen data. Regularization works by adding a penalty term to the loss function, which discourages the model from learning overly complex patterns.
+
+**L1 Regularization (Lasso Regression)**: L1 regularization adds a penalty equal to the absolute value of the magnitude of the coefficients. It can result in some coefficients being set to zero, which means it can be used for feature selection.
+Loss = Original Loss + λ * Σ|w|
+
+**L2 Regularization (Ridge Regression)**: L2 regularization adds a penalty equal to the square of the magnitude of the coefficients. It forces the weights to be small but does not set them to zero. It is effective in reducing the complexity of the model and preventing overfitting.
+Loss = Original Loss + λ * Σ(w^2)
+
+The parameter λ (lambda) is a hyperparameter that controls the strength of the regularization. A larger λ results in more regularization. The choice between L1 and L2 regularization depends on the problem and the data. If feature selection is important, L1 is a better choice. Otherwise, L2 is generally preferred.

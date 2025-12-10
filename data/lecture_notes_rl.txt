@@ -1,0 +1,493 @@
+Reinforcement Learning
+
+As our final layer of complexity, imagine a situation where neither the transition probabilities nor the rewards are known a priori. The action space is assumed to be fully known, and the state space may or may not be fully known. In such environments, we deploy a class of algorithms known collectively as reinforcement learning (RL), where the agent learns to make decisions through interactions with the environment. The agent may choose to infer or estimate the underlying mechanics of the world such as 
+
+ and 
+
+, or directly try to optimize the value function in search of an optimal policy. We will now discuss both these approaches.
+
+Consider the following simulation of our 100-sided die-rolling game from class, where you, the agent, chose from action A or B, and the game environment (the prof.) would return a reward, and inform you whether the game is ended. The only information that you, the agent, must rely on is the reward and the fact that the game is still ongoing. The agent must then learn to make decisions based on this limited information.
+
+Given what we know about MDPs, one obvious approach is to simply assume an underlying MDP, and use gameplay data to infer rewards 
+
+ by observation, and estimate the transition probabilities, 
+
+. Once we have these values, the problem reduces to a standard MDP, and we may apply policy evaluation and value iteration techniques to find the optimal policy. Here's a quick walkthrough of how this works. Assume we get the following data from 5 consecutive games:
+
+From the gameplay, we can first infer that there are 2 states in the game, the start state S and the absorbing state END. TERMINATED state is not really a state; rather, it refers to the case where after some set number of moves, the environment is programmed to end a round of the game prematurely, and start the next round or episode. Given the two action choices A and B, we can see that both actions may bring an agent that starts in S back to S, but only A can take the agent to the END state. We can also observe that any transition back to the start state has a reward of 
+
+, and the transition to the end state has a reward of 
+
+. For now, we assume that the reward for a given transition does not change between or in the middle of episodes. This information yields the following MDP:
+
+Now, all that remains is to infer the transition probabilities. Looking back at the data, since we never observed the action B leading our agent to the end state, we may estimate that 
+
+. Of course, this estimate may be incorrect, since it is based on a limited amount of information from a very small number of episodes. However, as the number of episodes increases, this estimate will become more and more accurate. Similarly, we can see that when aciton A is played, out of 115 times, the agent ended up back in the start state 111 times, and 4 times in the END state. We may, therefore, estimate that 
+
+ and 
+
+.
+
+Such an approach is called Model Based Monte Carlo (MBMC) estimation, since we assume an underlying MDP, and use the data solely to infer the model's parameters, namely the transition probabilities and rewards. Once we have an MDP, evaluating a given policy, or computing the optimal policy proceeds exactly as we did before. However, this approach may have a few drawbacks. Before you read the next section, pause and think about what these drawbacks may be.
+
+The first drawback is that MBMC approaches use data-based estimates to construct a fixed model of the environment. Once this model is constructed, it is typically not updated, but is instead assumed to be a 'good enough' representation of the environment. Of course, implementing running updates of the transition probabilities is no big feat of mathematics; but that, in turn, leads us nicely to the second drawback.
+
+The second drawback is that policy evaluation and optimal policy estimation for a given MDP is mathematically (or computationally, for us CS majors) expensive, since we rely on iterative algorithms based on the Bellman update equation. Recall that to compute optimal policies, we must consider all possible actions from all states, running a large number of updates for each legal state-action pair until the values converge. After having gone through all that trouble, imagine we now have to update our MDP based on new data. Immediately, the previously computed optimal policies must be discarded and re-computed from scratch, since our estimated transition probabilities have now changed.
+
+It is clear therefore, that we need something more efficient: a way of computing optimal policies that can constantly be updated as the agent gathers more data by interacting with the environment. The solution - Model-Free Monte Carlo (MFMC) methods. As the name suggests, in MFMC, we use the data from the environment to directly estimate Q-values, without first constructing the underlying MDP. The most complex of MFMC methods can be made intuitive through a progression of computational optimizations to a simple core idea: that of maintaining running averages.
+
+Let us start with the easiest possible variant; where we already have data gathered from a number of episodes. Consider the same data we used earlier, gathered by playing the dice game simulation above for 5 episodes.
+
+However, this time, instead of counting the number of times a given transition occurs and recording the reward, we shall dig a little bit deeper into the information each episode is giving us. First, recall what a Q-value for a state-action pair represents: it is the expected value of taking a specific action 
+
+ from a state 
+
+, and then continuing to play the game by following some underlying policy 
+
+. (If this concept is unclear to you, it would be worth revisiting the section on MDPs. Please reach out to the TAs or the instructor if you need further clarification.)
+
+Now, let us look at the first episode alone, and reason about what this data tells us about 
+
+S, A
+
+ - the expected value of being in the start state, and choosing action A.
+
+Recall that this expected value, 
+
+S, A
+
+ consists of two sets of rewards: immediate rewards as a result of a transition into a next state 
+
+ by taking the action A, and a discounted future reward, accounting for everything else that happens thereafter. In the above episode, action A is the very first action our agent takes, ends up back in S, and gets an immediate reward of 
+
+. The rest of the episode contributes to the discounted future reward portion of the expected value.
+
+Assuming the discount factor, 
+
+ for simplicity, the 'future reward' of taking action A from state S is 
+
+. Thus, the utility of taking action A from state S is 
+
+. Let us call this 
+
+S, A
+
+. We now repeat this process for all episodes; starting from the first time we encounter the pair S, A, we compute the utility, 
+
+S, A
+
+ for each episode that the pair occurs, we consider the immediate and discounted future rewards. Finally, we say that 
+
+S, A
+
+ is the average of the computed utilities. The following image illustrates this computation:
+
+We only consider the first occurrence of the state-action pair that we are interested in, in each episode - and the utility is computed as a discounted sum over the remainder of the episode. This is simply to avoid double counting rewards - note that the immediate reward of 
+
+ when taking action A for the second time in the first episode already features in the future rewards for the same action taken earlier, albeit with a discount factor. Following a very similar, process, we can also compute 
+
+S, B
+
+, which turns out to be 
+
+. It would be a good idea to write out the steps for this on your own and compare our final solutions to check your understanding. (HINT: for 
+
+S, B
+
+, completely ignore all episodes where the pair does not occur at least once.)
+
+Compare what we just did to a model-based approach. Upon receiving data from a new episode, in a model-based approach, we would first need to update transition probabilities, then run several iterations of Bellman updates to approximate Q-values for each state-action pair. Instead, in a model-free approach, we directly approximate Q-values by averaging over episode-wide utilities. Upon receiving data from a new episode in a model-free approach, we simply need to update our average utility for each state-action pair that occurred in this new episode.
+
+Although this is an improvement over MBMC, we can do better still. There are two questions that naturally arise with this approach, that we would benefit from addressing:
+
+What do we do about the incredibly high variance in the utilities between episodes?
+
+How do we maintain a running average of utilities (which is the Q-value) without explicitly storing all past values?
+
+The answer to the first question is somewhat straightforward, especially to those who may have experience with dynamic programming. In Reinforcement Learning, Bootstrapping refers to the process of updating estimates of the value function based on the estimated value of subsequent states or actions, rather than waiting for the final outcome (like the end of an episode). Perhaps a more intuitive phrasing of that process could be: When an agent takes an action 
+
+ from a state 
+
+, and ends up in a new state 
+
+, we use our best guess about what happens thereafter (based on what we already know about 
+
+) instead of actually playing out the rest of the episode to make an update to 
+
+. This, in turn, leads us to a new class of RL algorithms, collectively known as Temporal Difference methods.
+
+Let's break that down; let's assume our agent starts in state 
+
+, takes action 
+
+, receives reward 
+
+, and ends up in state 
+
+. To compute the utility for this state-action pair, we first account for the immediate reward, which is simply 
+
+ as returned by the environment. Now, instead of computing discounted future rewards as a weighted sum over the actual rewards obtained from the rest of the episode, we shall instead rely on our best estimate of what happens next. Where do we get this estimate from? Recall that the Q-value of a state-action pair is simply the expected utility of being in that particular state and taking that particular action, and then continuing to follow a policy 
+
+. Therefore, given a next action 
+
+ that the agent takes from 
+
+ (which is where it currently is), we can use the value 
+
+ as an approximation for what happens in the rest of the episode. While at the beginning of training, we do not have a reasonable estimate of 
+
+ for any state-action pair, we can overcome this problem with an iterative algorithm that works very similarly to our iterative Bellman updates in MDPs, where we start by simply assuming that 
+
+ for all state-action pairs is initially 
+
+.
+
+This approximation serves a dual purpose: a) it helps reduce variance between updates to 
+
+, since much of the variance arises as a result of differences in episode length (time-to-termination), owing to the randomness associated with the underlying policy 
+
+; and b) it allows us to make an update to 
+
+ for every observed set of 
+
+, instead of one update per episode, reducing overall wait time between updates. These factors combined, in practice, also lead to a faster convergence to a stable (and accurate) estimate of the value function. In other words, we can get away with fewer episodes of gameplay to generate an overall accurate estimate of the Q-function, compared to when we were doing one update per episode.
+
+Before we work through an example, we must first solve the second problem - that of maintaining running averages without storing entire value histories. We turn to convex combinations (linear combinations where coefficients sum to 1), where the coefficients are determined by the number of updates to a given value. Forget about Q-values for a bit, and just think of the following sequence of numbers: 
+
+. The mean of these numbers is, of course, 
+
+. Now imagine if instead of all five numbers in the sequence being presented at once, we were given the numbers one at a time, and asked to update our estimated mean. At time 
+
+, we would see the first entry in the sequence, the number 
+
+, and that would be our estimated mean. At time 
+
+, we would observe the value 
+
+, and would update our mean as 
+
+. At time step 
+
+, we would update our estimated mean as 
+
+. Now pause, and try to answer the following question: instead of using the actual values 
+
+ and 
+
+ to compute the updated mean at 
+
+, can we somehow combine our previous estimated mean (
+
+) from 
+
+ and the new data point (
+
+) to come up with the updated mean of 
+
+?
+
+Remember that two values (
+
+ and 
+
+ respectively) contributed to the previous estimate of the mean (
+
+), and we have one new data point (the value 
+
+) to account for. To update our mean then, we simply need to take a weighted average of the previous estimate of the mean and the new data point, where the weights depend on the number of terms that contributed to each of the terms. For this example, 
+
+. Now extend this reasoning to the next timestep. Our mean after observing three terms is 
+
+, and the next data point we observe is 
+
+. Our weights would therefore be 
+
+ for our estimated mean (since it was estimated after observing three terms out of four), and 
+
+ for the new data point. Thus, our updated mean can be computed as 
+
+. In fact, this reasoning can also be applied for the very first estimate of the mean as well - imagine that your estimate at 
+
+ is simply 
+
+, since nothing has been observed so far. After observing the value 
+
+ at 
+
+, the weights are 
+
+ for the current estimate, since no observed terms contributed to our guess of 
+
+, and 
+
+ for the new observed data point; and 
+
+.
+
+Note that in all of these updates, the coefficient for the previous estimate and that of the new observed value always add up to 1 (hence a convex combination). The updates, therefore, may be written as a general equation based on the number of updates. Let 
+
+ be our estimated mean. Let the initial estimate based on no data be 
+
+. Then, for each observed data point 
+
+, we may update 
+
+ as follows:
+
+where the 
+
+ and 
+
+ subscripts simply indicate the previous and updated values of the estimate respectively.
+
+Finally, to recycle a metaphor from the 17th century, combining these two ideas (bootstrapping and convex combinations) finally gives us the SARSA algorithm, the stone that kills two birds. To maintain a running estimate of 
+
+ without waiting for episodes to end, or storing the entire history of the estimated value, we make an update to 
+
+ every time we observe the action 
+
+ being taken from state 
+
+, by looking one step ahead and considering the next state 
+
+ and the subsequent action 
+
+. Here's a summary of how the algorithm works:
+
+The SARSA Algorithm
+
+For each observed 
+
+,
+
+Increase number of completed updates to 
+
+ by 1.
+
+Let us run through an example. Consider the same set of five episodes we previously used, except this time, we will use SARSA to estimate the Q-values, 
+
+S, A
+
+ and 
+
+S, B
+
+. Note that these are the only two legal (observed) combinations, since the only other state the agent can be in is the END state, from where no further actions are possible. One final nuance here, is that we need to track the number of updates to the Q-value for each state-action pair separately. We therefore initialize our Q-table, and update counter table as follows:
+
+Now, every time we observe a sequence of 
+
+, we use the equation from the SARSA algorithm to update the Q-table. Let's start with the first episode. The first observed sequence of 
+
+ is highlighted below:
+
+Since the agent takes action A from state S, we get to update the entry corresponding to 
+
+S, A
+
+. To do so, we first calculate 
+
+ using the number of times 
+
+S, A
+
+ has been updated so far, which is 
+
+. Thus,
+
+Next, we note that the agent ended up in 
+
+S, and took the subsequent action 
+
+=A. Thus, we look up the corresponding 
+
+ value to use as a proxy for our discounted future reward, which is also currently 
+
+. Finally, we run the update equation, assuming 
+
+ for simplicity:
+
+Therefore, our updated Q-table and update-counter table are as follows:
+
+Let us walk through two more updates, to make sure our understanding is correct: the next observed 
+
+ sequence is highlighted below:
+
+The value of 
+
+ is now calculated as 
+
+. This gives us the following update:
+
+Now, our updated Q-table and update-counter table are as follows:
+
+The next observed 
+
+ sequence is highlighted below:
+
+The value of 
+
+ is now calculated as 
+
+, since 
+
+S, B
+
+ has never been updated before. This gives us the following update:
+
+Now, our updated Q-table and update-counter table are as follows:
+
+This process is then continued, moving on to the next observed 
+
+ sequence, making one corresponding update, and so on. Note that we only update the Q-value (and update counter) for the specific 
+
+ pair featured in each observed 
+
+ sequence. Continue this process on your own, and see what final estimate you get after processing the remaining episodes in this example. Also note how the estimated values of 
+
+ for any given state-action pair don't fluctuate as wildly between updates as they did before (when we made updates after each episode).
+
+So far, we have assumed that the data is generated by some underlying policy 
+
+, and that is the same policy for which SARSA computes the expected values. SARSA, therefore, is an example of an on-policy learning technique. However, the key motive in training an agent in a reinforcement learning setting is for the agent to eventually figure out an optimal policy - the state-action mapping that maximizes the expected utility. To this end, we now dive into off-policy learning, where the agent learns the expected value for the optimal policy while using a completely different policy to explore the environment. The policy used to explore the environment is often referred to as an exploration policy.
+
+So how do we learn 
+
+ for some state-action pair while using a different exploration policy 
+
+ to explore the environment? If you think back to MDPs, the answer to this question is, in fact, a very similar modification to the SARSA algorithm. In the update equation for 
+
+, instead of using 
+
+ as a proxy for the discounted future reward, we use 
+
+ as a proxy instead. This gives us the following algorithm to infer optimal expected utilities:
+
+The Q-Learning Algorithm
+
+For each observed 
+
+,
+
+Increase number of completed updates to 
+
+ by 1.
+
+Let us go back once again, to the same five episodes, and walk through a few updates, this time estimating the optimal expected values. One key thing to note here, is that the data was not generated by playing optimally: in fact, it was generated by a completely different exploration policy that changed with each episode. This is the beauty of off-policy learning - the ability to extract the optimal expected value function from this data, in turn giving us the optimal policy. We will see later that separating the exploration policy in this manner has some added benefits.
+
+As opposed to SARSA, in the Q-learning algorithm, we are interested in sequences of 
+
+, and we don't look ahead at the subsequent action 
+
+ taken by the agent. Instead, we will consider all possible actions that the agent could have taken from 
+
+, and pick the maximizing expected value. First, we initialize our Q-table and update counter, just as we did for SARSA, but this time, the entries in the Q-table correspond to 
+
+, and not 
+
+ (or to be more precise, 
+
+ in this setting).
+
+Now, every time we observe a sequence of 
+
+, we use the Q-learning equation to perform an update to our Q-table. Let's start with the first episode. The first observed sequence of 
+
+ is highlighted below:
+
+Just like SARSA, since the agent takes action A from state S, we update the entry corresponding to 
+
+S, A
+
+. To do so, we first calculate 
+
+ using the number of times 
+
+S, A
+
+ has been updated so far, which is 
+
+. Thus,
+
+Next, we note that the agent ended up in 
+
+S, but this time we don't look at the subsequent action 
+
+=A in particular. Instead, we look up the maximum value from the row corresponding to state S in the Q-table to use as a proxy for our discounted future reward, which is also currently 
+
+. Doing so accounts for all possible actions that could have been taken from the state S, and the largest value from this row is nothing but 
+
+S
+
+. Finally, we run the update equation, assuming 
+
+ for simplicity:
+
+Therefore, our updated Q-table and update-counter table are as follows:
+
+The next observed 
+
+ sequence is highlighted below:
+
+The value of 
+
+ is now calculated as 
+
+. This gives us the following update:
+
+Now, our updated Q-table and update-counter table are as follows:
+
+The next observed 
+
+ sequence is highlighted below:
+
+The value of 
+
+ is now calculated as 
+
+, since 
+
+S, B
+
+ has never been updated before. This gives us the following update:
+
+Now, our updated Q-table and update-counter table are as follows:
+
+Even though we arrived at the same values in our 
+
+ computation as we did for 
+
+ earlier, it is important to recognize that we did so through a slightly different process, and this is simply a coincidence. As you continue to update Q-values using either method, you may see differences emerge in the respective Q-tables, owing to the fact that Q-learning always uses the maximum expected utility from the resulting state 
+
+, whereas SARSA uses the expected utility tied to the next action observed in gameplay.
+
+Finally, let's think about how to decide the exploration policy 
+
+. First, keep in mind that we use the data generated by the exploration policy to in turn, infer the optimal policy (referred to as exploitation in RL literature) - which implies that we should incentivize choosing good moves in general, to at least some degree. However, at the beginning of gameplay, the agent does not have an accurate view of the world; in other words, we don't really know which moves are optimal. On the other hand, there is also value in taking random actions, which allows us to explore the state-space more thoroughly as we try all the various combinations of state-actions pairs possible. With more random actions, there is a higher likelihood that the agent will observe rewards for most, if not all transitions in the underlying MDP.
+
+One popular technique ussed to account for these opposing objectives (exploration v/s exploitation) is the 
+
+-greedy approach. The policy in this setting is no longer a static mapping of one action to each state; instead, the policy is a probability distribution over all valid actions that the agent may take from each state. Further, this distribution itself is not static, but changes over time - starting off by encouraging exploration more, in order to gather information about as many state-action pairs and transitions as possible, but gradually shifting to favor exploitation, i.e., making more optimal moves. Formally, a policy for a state 
+
+ using the 
+
+-greedy approach is defined as follows:
+
+Let 
+
+ be the probability of taking a random action, and be initialized to a number close to or equal to 
+
+. At each timestep:
+
+After taking an action based on the above probabilities, we reduce 
+
+, typically by multiplying it by a constant decay factor less than 
+
+, which is nothing but an exponential decay in the probability of taking a random action over time. As 
+
+ decays to a value close to 
+
+, 
+
+ converges to 
+
+, and if the exploration was thorough enough, we should have at the end, an agent that has learnt to maximize reward in its environment by taking optimal actions from each state.

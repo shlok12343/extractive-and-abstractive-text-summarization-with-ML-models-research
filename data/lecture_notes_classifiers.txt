@@ -1,0 +1,497 @@
+Naive Bayes Classification
+
+Naive Bayes classification is a simple probabilistic classifier based on the application of Bayes' theorem, where we (naively) assume that features are independent. Doing so simplifies the computation of the posterior probability, under the assumption that features are conditionally independent given the class label. Naive Bayes (NB) classification is a supervised learning approach, i.e., we require a set of labeled training data to build the model. The model is then used to predict the class label of new, unseen instances based on the features provided. Despite its simplicity, NB classifiers have been found to perform well in practice, especially in text classification tasks such as spam filtering and sentiment analysis. Let us walk through how an NB classifier works in practice with the same example of spam classification, with the set of features we discussed earlier.
+
+The first thing we need to do is to build a training dataset, where each instance is represented by a feature vector and has an associated true class label. For instance, we may have the following raw training data:
+
+#	Email Contents	Class
+
+Email 1	From: raj.venkat@northeastern.edu
+
+Body: URGENT: Your account has been compromised. Click here to reset your password.	Spam
+
+Email 2	From: texjohnson707@gmail.com
+
+Body: Hi, I hope you are doing well. Attached is the document you requested.
+
+Attachments: barrel.jpg	Ham
+
+Email 3	From: noreply@insurer.com
+
+Body: ACTION REQD: You are the named beneficiery of a $1M insurance polcy.
+
+To collect, call (716) 776-2323 immidiately.	Spam
+
+Email 4	From: noreply@nsfgrfp.org
+
+Body: The U.S. National Science Foundation (NSF) is seeking reviewers for the FY25 Graduate Research Fellowship Program (GRFP). The deadline to register to be considered as a reviewer for this year’s competition has been extended to November 4, 2024.	Ham
+
+In this example, we have a set of emails, each labeled as spam or ham. We first need to extract the relevant features from each email, and then convert these features into numerical representations, as we discussed earlier, and build a training dataset. For instance, consider the third email. The sender is from a non-trusted domain (represented as 0), the email has a high urgency score (say, 0.9, given by our NLP tool), no attachments (represented as 0), no links (represented as 0), and three typos (represented as 1 using the binning technique discussed above). The feature vector for this email, therefore, is as follows: [0, 0.9, 0, 0, 1] , and its true label (spam) is represented as -1. (Conversely, the labels for ham emails are represented as 1.) After similarly processing all the emails, the equivalent training dataset would look as follows:
+
+#	Trusted Domain	Urgency Score	Attachment	Link	Typos	Class
+
+Email 1	1	0.8	0	1	0	-1
+
+Email 2	0	0.2	1	0	0	1
+
+Email 3	0	0.9	0	0	1	-1
+
+Email 4	1	0.1	0	0	0	1
+
+Great! Now that we have some training data, we can build our NB classifier. This is a fairly straightforward application of Bayes' theorem, where we compute the posterior probability of each class given the features of an email, and predict the class with the highest probability. To understand this, let us now take a new email as an example and walk through the process of classifying it as spam or ham. Consider the following email, and its correpsonding feature representation:
+
+Email Contents
+
+From: registrar@northeastern.edu
+
+Body: URGENT. The academic calendar has been updated.
+
+Please click here to view the updated calendar. In case of unforeseen scheduling conflicts, please reply to this email by the end of day.
+
+The equivalent feature vector is:
+
+Trusted Domain	Urgency Score	Attachment	Link	Typos
+
+1	0.8	0	1	0
+
+Let this feature vector be represented by 
+
+. The problem of figuring out whether this email 
+
+ is ham or spam is equivalent to computing the conditional probabilities 
+
+ and 
+
+, and comparing to see which is higher. Let us start by computing 
+
+. By Bayes' theorem, we have:
+
+where 
+
+ is the likelihood of the features given that the email is spam, 
+
+ is the prior probability of spam emails, and 
+
+ is the evidence. We can similarly compute 
+
+ as:
+
+Note that the denominator 
+
+ is the same for both classes, and can be ignored when comparing the two probabilities. Thus, we simply need to compute the two numerators and select the class with the higher (now non-normalized) posterior probability. Next, note that the terms 
+
+ and 
+
+ (also called the prior probabilities of spam and ham emails respectively) can be computed as the fraction of spam and ham emails in the training dataset. Since we have two emails that are ham and two that are spam, for our NB classifier, we can set 
+
+ and 
+
+.
+
+To compute the likelihood 
+
+, we make the naive assumption that the features are conditionally independent given the class label. This allows us to write:
+
+where each term on the right-hand side can be computed from the training data. For instance, 
+
+ is the fraction of spam emails that have a trusted domain, which in our case, happens to be one out of two (out of the two spam emails, namely emails 1 and 3, only email 1 is from a trusted domain). We can similarly compute the other terms. For the given email, the posterior probability of spam is therefore:
+
+Similarly, we can compute the posterior probability of ham as:
+
+From our computed probabilities, we can now classify the test email as spam. This may surprise you, since the test email, when inspected, does not appear to be a spam email. However, the NB classifier has made its prediction based on a very limited dataset, and the features we provided. In reality, the features used are often more complex, and the model is trained on a much larger dataset. Despite its simplicity, NB classification is often used as a baseline model for text classification tasks, and can perform surprisingly well in practice.
+
+One final nuance here is that if any of the conditional probabilities in the posterior computation evaluate to 
+
+, the entire probabilty goes to 
+
+. For instance, when we computed the probability of the urgency being 
+
+ given a ham class email (
+
+), this value is 0 simply because such a combination does not exist in our training set. However, this does not mean that such a combination will never exist or will not be encountered at test time. In its current form, our NB classifier will assign a probability of 
+
+ for any combination of features and labels it has not yet observed, and is therefore not as generalizable. To account for this, we can use Laplace smoothing, where we add a small constant to each count to ensure that no probability is ever 
+
+. This is a common technique used in practice to ensure that the model is more robust and generalizes better to unseen data. Here is a more detailed set of notes for smoothed NB classification [CSE446: University of Washington].
+
+Linear Classifiers
+
+While NB classification works quite well for simple problems such as text-classification, often we wish to extract explicit relationships between features and the class label. For instance, from our NB classification, it is hard to understand which of the provided features are the most important for spam/ham classification. To tackle this problem, we now build a more general framework for classification, using linear decision boundaries.
+
+To understand the problem at hand, we must first ensure that we are comfortable with thinking about data as points or vectors in some 
+
+ dimensional space. Recall that for a given email, we vectorize it to a format that looks like [0, 0.9, 0, 0, 1] for instance. This vector is simply a point in a 5-dimensional space. Each data point in our original training set will be represented similarly as a vector of length 5, and represents a unique point in 5-D space. Moving forward, we use the notation 
+
+ to represent a feature vector in this space, where the subscript 
+
+ denotes that this feature vector corresponds to the 
+
+ data point. Since the feature vector above represents email 3, we can therefore say that 
+
+[0, 0.9, 0, 0, 1].
+
+While humans cannot visualize 5-dimensional spaces, the theory works just as well in 1, 2 or even 10000 dimensions - so for the sake of building intuition, we will consider 2-D and 3-D spaces in this section. However, it is important to realize that everything we discuss below applies to feature vectors of arbitrary length. For simplicity, let us consider a different sample dataset, where we have two features for each data point, and the class label is binary. The dataset is as follows:
+
+#	Feature 1	Feature 2	Class
+
+1	1	1	1
+
+2	2	2	1
+
+3	1	2	0
+
+4	2	1	0
+
+We can plot this dataset in 2-D space, where the x-axis represents feature 1, the y-axis represents feature 2, and the color of the point represents the class label. The dataset would look as follows (interactive plot):
+
+A linear classifier or decision boundary in two dimensions is a line that separates the class -1 datapoints from the class 1 datapoints. (In 1-D, a linear classifier is a point, in 3-D, it is a plane, and so one. In general, we call the decision boundary a hyperplane in 
+
+ dimensions.) Now, note from the above figure, that we can draw infinitely many lines, that will perfectly separate the two classes (a few shown below):
+
+A natural question to ask, then, is - which of these lines is the best? One might say that the best line is the one that maximizes the separation between the two classes. In machine learning, we call this quantity the margin - which is defined as the distance between the decision boundary and the closest point of the two classes in case of binary classification. The decision boundary that maximizes this margin is the one that is most robust to noise in the data, and is the one that is most likely to generalize well to unseen data. To understand this, let us first consider a counterexample, where the decision boundary is closer to one class, but still perfectly classifies the data.
+
+Now, in this space, let us place a new data point, shown in the following figure in white. Given the decision boundary shown, we would classify this point as Class 1. However, looking at the overall data distribution, it is clear that this point is closer to other Class -1 points, and should be classified as such.
+
+This is why we instead aim for a decision boundary that acts as the maximal separator; in other words, the decision boundary that maximizes the margin. Such a decision boundary would look something like this:
+
+The process of finding the decision boundary that maximizes the margin is called maximal margin classification, and is a key idea in the field of machine learning. The decision boundary that maximizes the margin is called the maximum margin hyperplane, and the algorithm that finds this boundary is called the support vector machine (SVM). In the next section, we will discuss the SVM algorithm in more detail, and understand how it works. But before we do so, we must cover one more aspect of learning linear decision boundaries - and that is the representation of a decision boundary in the form of a mathematical equation using a set of parameters.
+
+Recall how we said that a linear classifier in 2-D space is a line. In general, a linear classifier in 
+
+ dimensions is a hyperplane, which can be represented as the set of points 
+
+ that satisfy the equation: 
+
+. Here, 
+
+ is a vector of weights, and 
+
+ is a bias term that serves the same purpose as the intercept of a line in 2-dimensions. The decision boundary is the set of points where the dot product of the weights and the feature vector plus the bias term is equal to 0. For instance, in 2-D space, if the weight vector is 
+
+ and the bias term is 
+
+, the equation of a line represented by these parameters is 
+
+. Similarly, in 3-D space, the equation of a plane is 
+
+, and so on. The process of training an SVM is nothing but figuring out appropriate values for the weights and the bias term such that they maximize the margin, and therefore, the generalization of the model.
+
+One final piece of information that will come in useful later is the geometric interpretation of the weights and biases in the representation of a hyperplane. The weights 
+
+ are simply a point or a vector in the 
+
+-dimensional space, and the hyperplane is orthogonal to the weight vector. To fully appreciate this, let us consider the so-called 'best' decision boundary we saw earlier (
+
+ or equivalently 
+
+, where the vertical axis is represented by 
+
+ instead of 
+
+ for the sake of generality), and think about its representation using weights and a bias term. Say we are given the weights, 
+
+ and the bias term 
+
+. We begin by first just plotting the weight vector in a 2-dimensional space.
+
+The weight vector is shown in blue. Now, we draw an orthogonal to this vector that passes through the origin. You will notice that this resembles the line 
+
+. That is because if we consider the equation of a line defined by our weight vector without considering the bias term, we get 
+
+, which simplifies to 
+
+.
+
+Finally, we add the bias term to shift the hyperplane along the weight vector. Plugging this into the equation for a line, we get 
+
+. The final hyperplane is shown below:
+
+Three important things to note: a) the orthogonal distance of the decision boundary to the origin is 
+
+, b) the same decision boundary could be obtained using the weights 
+
+ and the bias term 
+
+; indicating that the weights and biases can be scaled by a constant factor and still represent the same hyperplane, and c) the same line can be obtained using the weights 
+
+ and bias term 
+
+; however, while this represents the same line, the interpretation as a decision boundary for classification will be slightly different, as we will see next.
+
+Consider our 'best' classifier again. To make a prediction for a test data point, we simply need to see which side of the line the point is on. If the point is in the direction that the weight vector points in (in this case, the right half of the plane), we say that the point is classified as a Class 
+
+ sample, and otherwise, we say that the point is classified as a Class 
+
+ sample. For example, consider the point 
+
+. This point lies on the right side of the decision boundary, and is therefore classified as Class 
+
+. Similarly, the point 
+
+ lies on the left side of the decision boundary, and is classified as Class 
+
+.
+
+How do we know if a point lies on one side of the decision boundary or the other without actually plotting everything? The answer lies in the sign of the quantity 
+
+. If this quantity is positive, the point lies on one side of the decision boundary, and if it is negative, the point lies on the other side. Let us try this for the two test points in the above figure. For the point 
+
+, we have
+
+Similarly, for the point 
+
+, we have
+
+Therefore, the point 
+
+ is classified as Class 
+
+, and the point 
+
+ is classified as Class 
+
+. Now think about what happens when the signs for 
+
+ and 
+
+ are flipped - even though we get the same line that acts as the decision boundary, the left half would now be classified as Class 
+
+ and the right half as Class 
+
+. This is why the weights and biases are unique to a decision boundary, and not the line itself.
+
+Support Vector Machines
+
+Armed with the knowledge of linear classifiers and the representation of hyperplanes, we are now ready to understand the Support Vector Machine (SVM) algorithm. The fundamental idea is to find a linear separator that not only classifies our data correctly, but also maximizes the margin between the two classes. Let us re-visit the figure that showed the 'optimal' hyperplane, with a bit of additional information:
+
+Notice the two points on either side of the decision boundary that are closest to it. These points are called the support vectors (hence the name!). The margin is defined as the distance between the hyperplane and the closest point of either class, and the goal is to find the hyperplane that maximizes this distance. Equivalently, we can think of this as maximizing the distance between the two dashed lines subject to accuracy as a constraint, such that the decision boundary lies between the two dashed lines. Now, in SVMs, we make a key assumption that any point, in order to be classified correctly, must lie not only on the correct side of the decision boundary, but also outside the margin. To simplify our calculations, we further assume that the orthogonal distance between the support vectors in particular and the decision boundary is 1. This is a common assumption in SVMs, and is called the canonical hyperplane.
+
+The process of training an SVM, therefore, is to find the hyperplane that maximizes the margin while ensuring that all the data points are classified correctly. In other words, in order to be able to leverage techniques such as gradient descent, we need to first construct a loss function that accounts for both these objectives - accuracy, and maximizing the margin. Let us start by considering accuracy. We know that a point 
+
+ is classified correctly if 
+
+ for Class 
+
+ points, and 
+
+ for Class 
+
+ points. We can combine these conditions into a single ineuqality as follows: 
+
+. Further, based on our assumption that the support vectors lie a unit distance away from the hyperplane, this implies that all correctly classified points must be at least a unit distance away as well. Therefore, we can re-write the inequality as 
+
+. This inequality is satisfied if the point is classified correctly, and is violated if the point is either misclassified, or lies within the margin. To define an appropriate loss function, it is useful to consider not only the number of misclassifications, but also by how much each point is misclassfied, and penalize these errors accordingly. A natural thing to do is to consider how far the value of 
+
+ is from 
+
+. If the value is greater than 
+
+, then the point is both classified correctly, and is at least a unit distance away from the hyperplane, and should yield zero loss. On the other hand, if the value is less than 
+
+, then the point is either misclassified, or is within the margin, and should yield a non-zero loss, and we wish to scale this loss by the distance from the margin (the further the point is in the wrong direction, the greater the loss). This can be captured using the hinge loss function, which is defined as 
+
+. The hinge loss is a convex function, and is zero when the point is correctly classified, and increases linearly with the distance from the margin when the point is misclassified. The following figure shows the hinge loss function:
+
+Now that we have a convex function that represents classification accuracy, we turn our attention to maximizing the margin. The margin is defined as the distance between the hyperplane and the support vectors. To derive the equation, consider the two support vectors in the figure below. The distance we wish to maximize is the sum of the orthogonal distances of the two points from the decision boundary. In other words, if we were to imagine a vector connecting the two support vectors (
+
+ and 
+
+), the projection of this vector (
+
+) onto the weight vector 
+
+ would be the distance that we are interested in maximizing. This projection is given by 
+
+, and is shown in the figure below:
+
+Now, recall that we assumed that the support vectors lie a unit distance away from the hyperplane. Therefore, we can say that 
+
+ and 
+
+. Subtracting the two equations gives us 
+
+. Therefore, the margin is given by 
+
+. To maximize the margin, we need to minimize 
+
+, subject to the constraint that all points are classified correctly. For mathematical convenience in the computation of gradients, we equivalently minimize 
+
+. This is called a regularization term, and minimizing this quantity allows us to avoid overfitting - in this case, by learning a 'more general' classifier in the sense of achieving maximum separation between classes. The final loss function that we wish to minimize is therefore the sum of the hinge loss averaged over the training dataset for accuracy and the regularization term to maximize the margin, and is given by: 
+
+. The parameter 
+
+ is a hyperparameter that controls the tradeoff between maximizing the margin and minimizing the hinge loss. A large value of 
+
+ will prioritize minimizing the hinge loss, while a small value of 
+
+ will prioritize maximizing the margin. Instead of averaging over the training data, we may equivalently choose to simply sum the hinge loss over the training data instead and pick an appropriate value for 
+
+, since the denominator 
+
+ does not feature in a sum over data points; the choice of whether to average or sum is a design choice.
+
+Finally, to learn the weights and bias term that minimize this loss function, we can use gradient descent. The gradient of the hinge loss term is given by 
+
+ when the point is misclassified, and zero otherwise. The gradient of the regularization term is simply 
+
+. Therefore, the gradient of the loss function with respect to the weights is given by 
+
+𝟙
+
+, and the gradient with respect to the bias term is given by 
+
+𝟙
+
+. Here, 
+
+𝟙
+
+ is the indicator function that returns 1 if the condition inside the brackets is true, and 0 otherwise.
+
+Logistic Regression
+
+So far, we have discussed linear classifiers and SVMs, which are used for binary classification tasks. However, in many real-world scenarios, we wish to predict probabilities of a data point belonging to a particular class, rather than simply classifying it as one of two classes. Despite its name, logistic regression is a classification algorithm, and is used to predict the probability of a data point belonging to a particular class. The key idea in logistic regression is to model the probability of a data point belonging to a particular class (the positive class) as a function of the features of the data point. Before you read further, think about what we already know about linear classifiers, and how we can extend this idea to predict probabilities.
+
+Recall that in linear classifiers, the decision boundary is a hyperplane that separates the two classes. The sign of the quantity 
+
+ determines the class of the data, and the magnitude of this quantity determines the distance of the data point from the decision boundary. In logistic regression, we simply take this quantity and pass it through a function that maps it to the range 
+
+ so that we can interpret it as a probability. To be more precise, the output gives us the probability of the input belonging to the positive or 
+
+ class, since large positive inputs will be mapped to 
+
+, whereas large negative values (distances from the hyperplane in a direction opposite to the weight vector) will be mapped to 
+
+. This function is called the sigmoid function, and is defined as 
+
+. The sigmoid function is shown in the figure below:
+
+The sigmoid function lends itself naturally to interpreting the output as a probability. Note, for instance, what happens when for a linear classifer defined by weights 
+
+ and bias term 
+
+, the distance of a point from the hyperplane happens to be 0. The sigmoid function evaluates to 
+
+, indicating that the point is equally likely to belong to either class. If the distance is large and positive, the sigmoid function evaluates to a value close to 
+
+, indicating that the point is likely to belong to the positive class. Similarly, if the distance is large and negative, the sigmoid function evaluates to a value close to 
+
+, indicating that the point is likely to belong to the negative class. Due to this mapping, in the context of logistic regression, we represent the negative class as 
+
+ and the positive class as 
+
+, instead of 
+
+ and 
+
+ as we did in the context of linear classifiers. This is also mathematically convenient, as we will see shortly.
+
+The probability of a data point belonging to the positive class is therefore given by
+
+The probability of the data point belonging to the negative class is simply the complement of this probability, and is given by 
+
+. Now, given what we know about probabilistic modeling from previous sections, try to think about the following question: what is the total probability of our training data given the weights and bias term? Another way to phrase this question would be as follows: given weights 
+
+ and a bias term 
+
+, what is the total probability that the data we have seen is generated by the model? Yet another way to think about this is: what is the total probability that the given weights and biases label the training data correctly?
+
+The answer to any of the above questions derives from the sort of reasoning we employed in previous sections. Start by considering a single point, 
+
+ with the corresponding true label 
+
+ (negative class), with the same weights and biases as before. What is the probability that those weights and biases label this point as 
+
+? Evaluating the points using the weights and baises, we get 
+
+. Plugging this into the sigmoid function, we get 
+
+. Since this is the probability of the point belonging to the positive class, the probability of the point belonging to the negative class is 
+
+. Therefore, the total probability of the point being labeled correctly is 
+
+.
+
+Now, if we have a training set of two points, 
+
+ and 
+
+, with corresponding labels 
+
+ and 
+
+, and the weights and biases are the same as before, the total probability of the training data being labeled correctly is 
+
+, where the probabilities are multipled because both events (both correct classifications) must happen. Hopefully, the general form of the total probability is now starting to reveal itself to you. The total probability of the training data being labeled correctly is given by the product of the individual probabilities of each point being labeled correctly! Since 
+
+ is now either 
+
+ or 
+
+ in logistic regression, the relationship 
+
+ no longer works. Instead, we wish the following to be true: when 
+
+, the probability of the point being labeled as 
+
+ should be high, and when 
+
+, the probability of the point being labeled as 
+
+ should be high. This is captured by the following equation:
+
+We can combine these two cases into a single equation as follows:
+
+such that if 
+
+, the first term, 
+
+ evaluates to 
+
+, and the second term gives us the probability of a correct prediction. Similarly, if 
+
+, the second term evaluates to 
+
+. Therefore, the total probability of the training data being labeled correctly is given by
+
+Now, note that this total probability is a function of the weights and bias term. This implies that we can find a set of weights and a bias term such that this probability (of correctly labeling or generating our training data) is maximized. Therefore, the optimization problem we wish to solve is to maximize the total probability of the training data given the weights and bias term. This is the same as maximizing the log of the total probability, since the logarithm is a monotonic function. Logarithmic values are also more numerically stable since multiplying several probabilities between 
+
+ and 
+
+ could lead to numerical underflow. Therefore, we equivalently maximize the log-likelihood of the training data, which is given by
+
+Substituting in the expressions for 
+
+ and 
+
+, we get
+
+This is the objective function that we wish to maximize. Since in machine learning, we tend to think of the optimization as a loss minimization, we can equivalently write that our objective is to minimize the negative log likelihod, which is given by
+
+This is referred to as the Binary Cross Entropy (BCE) loss. Now, observe what happens when a point is classified either correctly or incorrectly. If the true label is 
+
+, the first term evaluates to 
+
+ and the second term evaluates to 
+
+. If the predicted probability 
+
+, then 
+
+, and if the predicted probability 
+
+, then 
+
+. Therefore, the BCE loss is minimized when the predicted probability is close to the true label, and is maximized when the predicted probability is far from the true label. The same reasoning applies when the true label is 
+
+.
+
+Finally, the BCE loss is a convex function, and can be minimized using gradient descent. The gradient of the BCE loss with respect to the weights and bias term is given by
+
+Special Topic: Derivative of the Sigmoid function 
+
+The sigmoid function is a key component of logistic regression (and many neural networks), and it is important to understand its derivative. The derivative of the sigmoid function is given by
+
+Applying the chain rule, we get
+
+Employing a bit of high-school algebraic trickery, we can rewrite this as

@@ -1,0 +1,373 @@
+break this down inunton Probabilistic Reasoning
+
+So far we have discussed search algorithms and developed a probabilistic reasoning model for cases where our world is static. Now, consider, for instance, the example of monitoring patients for food intake and insulin based on blood sugar levels. In this case, we encounter a shift from static to dynamic environments. Unlike static scenarios where the state sequence remains unchanged, dynamic environments introduce variability over multiple time intervals, requiring a different modeling approach. To tackle this, we adopt discrete-time models, dividing time into slices to capture snapshots of the state space at specific intervals. This enables us to observe states and make predictions based on these discrete time increments. Integral to this approach is the construction of transitional models, representing the probability distribution of the next state based on the current states.
+
+Markov Models
+
+Let us begin by imagining the problem of predicting whether it will rain today based on past weather data. We establish a transitional model denoted as 
+
+, where 
+
+ represents the weather state. However, considering an unbounded history poses an immediate challenge, as the value of 
+
+ increases. As time progresses, the history becomes increasingly extensive, making computations impractical. To address this, we leverage the Markov assumption, which states that the probability of the current state depends only on a finite series of previous states. As a special case, this assumption gives rise to the Markov chain representation, asserting that future state predictions are conditionally independent of the past given the present state- 
+
+.
+
+However, even within the Markov assumption, there exists the issue of 
+
+ taking infinite values. To mitigate this, we adopt a time-homogeneous approach, assuming that the process of state transitions remains constant over time. In essence, this implies that the conditional probability of transitioning from one state to another remains consistent across all time steps. In the context of weather prediction, for example, this means that the likelihood of rain today, given the weather yesterday 
+
+ remains constant over all values of 
+
+, requiring the specification of only one transition table. By embracing these assumptions, we can effectively navigate dynamic problem spaces, enabling better decision-making. Here is an example of a Markov chain, where 
+
+ is the state variable at a time-step 
+
+The joint distribution of the time slices 
+
+ to 
+
+ is represented by:
+
+This equation can be further generalized into:
+
+Let us revisit the example of the weather model, and understand the intuition behind these probability distributions as computed using a first-order Markov assumption. The following image depicts the probability transition table over the pairs of weather conditions:
+
+The transition probability matrix,
+
+represents the probabilities of transitioning between the weather states. For example, 
+
+ means there's a 
+
+ chance of transitioning from cloudy to rainy in one time-step. The rows in general represent the states at time step 
+
+ and the columns are state probabilities of what happens at time step 
+
+. Therefore to represent a Markov process in terms of the transition matrix, we would have to compute 
+
+. Since given the weather today, one of the three weather conditions must occur tomorrow (collectively exhaustive events), the rows must add up to one.
+
+Given an initial probability distribution over states (
+
+ through 
+
+) 
+
+, we compute the probability distribution of the states at the next time step by generalizing the probability distribution at time step 
+
+ with the equation:
+
+When 
+
+, we notice that our probabilities converge to what is known as the stationary distribution, following which the distribution does not change - it satisfies the equation 
+
+. Let us explain these properties with the weather example. Assume that the initial probability distribution we have is, 
+
+ - indicating that there is a 
+
+ chance of a sunny day, 
+
+ chance of a cloudy day and 
+
+ chance of rain. Given this information, the distribution at time-step 
+
+ would look like:
+
+Upon multiple sequential iterations of the above, we eventually reach some distribution 
+
+ which satisfies the equation 
+
+. For this case, the stationary distribution is as follows:
+
+In the context of Markov chains, eigenvectors and eigenvalues provide insights of the long-term behavior of the chain. The eigenvector 
+
+ represents the stationary distribution much like the one we computed above, while the matrix 
+
+ is the transition probability matrix. If 
+
+ is satisfied, we say that 
+
+ remains unchanged in direction when multiplied by the transition matrix 
+
+. Instead, they only get scaled by a factor of 
+
+.
+
+To reason about longer chains of events into the future (e.g., if the weather is sunny today, what will the weather be like in 10 days?), we can leverage the concept of the Chapman-Kolmogorov equation. This equation allows us to compute the probability of transitioning from state 
+
+ to state 
+
+ in 
+
+ time-steps. The equation is given by: 
+
+. For a detailed explanation, please refer to these notes by Dr. Fewster from the University of Auckland. For Markov models where a path exists between any two states, 
+
+ converges to the stationary distribution 
+
+, with the value in the 
+
+ column of 
+
+ being the same as the 
+
+ entry in 
+
+. This essentially means that the starting state is immaterial in the long run. However, when the Markov model has terminal or absorbing states, from which a random walk cannot depart, this is no longer the case. Consider, for example, the problem of the gambler's ruin. In this scenario, a gambler starts with 
+
+ units of money and plays a game where he wins or loses a unit of money each round with equal probability. The game ends when the gambler has no money left or when he has 
+
+ units of money. Assuming 
+
+ and 
+
+, we get the following Markov model:
+
+is the initial transition matrix. To compute the probability of exiting the game with a 
+
+ given that the player starts with 
+
+ after two time-steps is essentially given by 
+
+. The transition matrix after two time-steps would look as follows:
+
+The probability 
+
+. Additionally, as 
+
+, we would get the following computed matrix consisting of the stationary distribution:
+
+This game illustrates that to have a higher chance at winning, one is incentivized to start with a larger sum of money. This is because the probability of winning the game converges to the stationary distribution, which is higher for a larger initial sum of money. With a larger number of states between 
+
+ and the target amount, the probability of winning the game shifts significantly towards a larger initial pot. Remember that so far we've only considered an unbiased game. If the game is biased, the transition matrix would change accordingly.
+
+Hidden Markov Models
+
+In real-world scenarios like voice recognition, genetic sequence alignment, or predicting stock prices, accurately estimating the probability distribution over the next possible states is crucial. However, this information is often not directly accessible. Instead, our agents gather observations over time, which they use to update their beliefs about the environment. To accommodate this, we need to update our Markov models to incorporate the observations received by the agent at each time step. In practical settings, our models must adapt to the dynamic nature of the environment by integrating observed data into the modeling process. For instance, in voice recognition, the hidden states may represent phonemes or words, while the observations consist of acoustic features. As the agent listens to speech, it collects these observations over time and updates its belief about which sequence of hidden states is most likely to have generated the observed data.
+
+A Hidden Markov Model consists of three fundamental components: the initial distribution 
+
+, transition probabilities denoted by 
+
+, and observation/emission probabilities 
+
+. Additionally, HMMs operate under two critical Markov assumptions:
+
+Temporal Dependency: The future states of the system depend solely on the present state, encapsulated by the transition probabilities 
+
+. This implies that the sequence of states forms a Markov chain, where the probability distribution of the next state depends only on the current state.
+
+Observational Independence: Given the current state, the observation at a particular time step is independent of all other observations and states in the sequence, apart from the current state. This independence is described by the emission probabilities 
+
+.
+
+Now, let us consider the HMM example from class, where the true states denote whether the professor's train is very late, late or on time, and the observations are the professor's mood - either happy or sad. The following diagram shows the various transitions between states, and emissions from states to observations.
+
+Here are the state transition matrix 
+
+ and the emission/observation matrix 
+
+ respectively:
+
+Very Late	Late	On Time
+
+Very Late	0.1	0.3	0.6
+
+Late	0.4	0.2	0.4
+
+On Time	0.1	0.1	0.8
+
+Happy	sad
+
+Very Late	0.4	0.6
+
+Late	0.5	0.5
+
+On Time	0.9	0.1
+
+Given a set of these probabilities, we can deduce three types of reasoning using an HMM [Rabiner, L. R’s HMM tutorial, 1989].
+
+Probability of observing a sequence: Given an HMM with parameters 
+
+ and an observation sequence 
+
+, determine the likelihood of 
+
+.
+
+Most likely sequence, given observations: Given an HMM with parameters 
+
+ and an observation sequence 
+
+, determine the most likely hidden sequence, 
+
+. In other words, find
+
+Finding model parameters that best explain observations: Given an observation sequence 
+
+ and the set of states in the HMM, learn the HMM parameters 
+
+ and 
+
+.
+
+Type 1
+
+Let us start with the first type of reasoning. Given both a sequence of observations, and the corresponding hidden states, calculating the joint probability is fairly straightforward. For a particular hidden state sequence 
+
+ and an observation sequence 
+
+ , the join probability is given by:
+
+To compute 
+
+ in the above equation (the probability of being in a specific hidden state at the first time step), we often simply resort to using the stationary distribution of the Markov chain defined over the hidden states. Thus 
+
+. Note that this joint probability is different from the conditional probability of a sequence of observations given a sequence of hidden states. The latter is computed as 
+
+, since the hidden-state sequence is assumed to have occurred in this setting. These are also related as 
+
+.
+
+Now, consider the case where we compute the probability of an observation sequence 
+
+, not knowing the hidden sequence 
+
+. In this scenario, we need to account for all possible hidden-state sequences, and sum over their joint probabilities with the observation sequence. Intuitively, we can think of this as follows - consider a set of 3 observations 
+
+. Any possible hidden-state sequence 
+
+ could have given rise to these observations; however, only one of these hidden-state sequences will occur in a single random sample of length 3 from the HMM. We therefore sum over the joint probabilities of all such hidden-state sequences along with the observation sequence to get the total probability of the observation sequence. This is given by:
+
+For an HMM with 
+
+ hidden states and an observation sequence of 
+
+ observations, there are 
+
+ possible hidden sequences. For real tasks, where 
+
+ and 
+
+ are both large, 
+
+ is a very large number (recall the slide with a wall of computations from class). Obviously, this is computationally very expensive; however we can exploit the fact that the probability of the observation sequence up to time 
+
+ can be computed using the probability of the observation sequence up to time 
+
+. This is done by summing over the probabilities of all possible hidden-state sequences at time 
+
+, and then multiplying by the transition probability to the current state, and the emission probability of the current observation. This is done recursively, and the final probability is obtained by summing over the probabilities of all possible hidden-state sequences at time 
+
+.
+
+To this end, we use the Forward Algorithm which has a time complexity of 
+
+ which uses a lookup table to store intermediate values as it builds up the probability of the observation sequence. The algorithm recursively computes total probability by implicitly folding all possible paths into a single forward trellis. The forward trellis over N time-steps is represented by the following equation:
+
+where 
+
+ represents the different possible hidden states at each level of the search. Note that 
+
+ is nothing but the joint probability of a sequence of observations and a hidden state at time 
+
+, and therefore at 
+
+, we once again rely on the stationary distribution to compute 
+
+ as:
+
+At time 
+
+, we can compute 
+
+ as:
+
+and so on. The final probability of the observation sequence (after 
+
+ time-steps) is then given by:
+
+Let us walk through computing the likelihood of observing the sequence (happy, sad, happy) from the in-class example by breaking the tree down into smaller problems as follows:
+
+To compute 
+
+ (which is the total probability of all state-sequences of length 3 ending in 
+
+) using this tree, we get:
+
+The values 
+
+ and 
+
+ can be computed similarly. Then, to compute 
+
+, we get:
+
+The values 
+
+ and 
+
+ can be computed similarly. Finally, to compute 
+
+, we get:
+
+The values 
+
+ and 
+
+ can be computed similarly. Thus, we calculate the forward trellis of each state sequence ending in 
+
+ and 
+
+ at every time-step, and storing them for lookup at the next time step. Summing the values of 
+
+ at any level gives us the total probability of the observation sequence up to that time-step. Summing values at the top level gives us the total probability of the entire observation sequence. In our example, this sum is over all possible paths of length 3, and is the total probability of observing the sequence (happy, sad, happy).
+
+Type 2
+
+For the second type of reasoning, i.e., finding the most likely hidden-state sequence, given an observation sequence, we use a dynamic programming algorithm, called the Viterbi algorithm. This can be interpreted as a straightforward extension to the forward algorithm, where at the end of a desired observation sequence, we find the most likely hidden state by taking the max over the forward trellis, instead of summing the values. The trellis equation for the Viterbi algorithm is given by:
+
+and the base case is once again computed using the stationary distribution as
+
+The final probability of the most likely hidden state sequence 
+
+ after 
+
+ time-steps is then given by:
+
+Let us walk through computing the most likely sequence of hidden states given the sequence (happy, sad, happy) from the in-class example by breaking the tree down into smaller problems as follows:
+
+To compute 
+
+ (which is the probability of the most likely state-sequence of length 3 ending in 
+
+) using this tree, we get:
+
+The values 
+
+ and 
+
+ can be computed similarly. Then, to compute 
+
+, we get:
+
+The values 
+
+ and 
+
+ can be computed similarly. Finally, to compute 
+
+, we get:
+
+The values 
+
+ and 
+
+ can be computed similarly. Thus, we calculate the Viterbi trellis of each state sequence ending in 
+
+ and 
+
+ at every time-step, and storing them for lookup at the next time step. Taking the max of the values of 
+
+ at any level gives us the probability of the most likely hidden state sequence up to that time-step. Taking the max of the values at the top level gives us the probability of the most likely hidden state sequence of the entire observation sequence. In our example, this max is over all possible paths of length 3, and is the probability of the most likely hidden state sequence given the observation sequence (happy, sad, happy).
