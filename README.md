@@ -290,13 +290,13 @@ python clean_preprocess.py
 
 This cleans and preprocesses the data, generating pickle files for later use.
 
-4. To run the improved logistic regression model and the FFN, run log_reg_and_ffn.py using the pickle files found in the pkl_files directory.
+3. To run the improved logistic regression model and the FFN, run log_reg_and_ffn.py using the pickle files found in the pkl_files directory.
 
   python log_reg_and_ffn.py
 
 If you want to use your locally generated files from the previous step, modify the source code and change dependencies accordingly, or replace the existing pkl files.
 
-5. Run rouge_and_summarization.py using the respective pickle, npy and pth files found in their respective directories
+4. Run rouge_and_summarization.py using the respective pickle, npy and pth files found in their respective directories
 
 python rouge_and_summarization.py
 
