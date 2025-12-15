@@ -1,6 +1,6 @@
 ## Research Project: Extractive & Abstractive Summarization by Shlok Nanai, Pranay Pentyala and Nick Yang
 
-[Research Papaper](https://www.overleaf.com/project/69400d6c398d8818d1681abc)
+[Research Report](https://www.overleaf.com/project/69400d6c398d8818d1681abc)
 
 This project implements:
 
