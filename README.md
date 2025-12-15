@@ -1,4 +1,4 @@
-## Project: Extractive & Abstractive Summarization
+## Research Project: Extractive & Abstractive Summarization by Shlok Nanai, Pranay Pentyala and Nick Yang
 
 This project implements:
 
